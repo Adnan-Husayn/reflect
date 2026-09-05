@@ -9,7 +9,7 @@ Reads `session_summaries` rather than scanning `readings`, which is what the
 rollup exists for.
 """
 
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session as OrmSession
@@ -37,7 +37,11 @@ def get_trends(
     db: OrmSession = Depends(get_db),
     user: User = Depends(current_user),
 ) -> TrendsOut:
-    end = date.today()
+    # UTC, matching how the timestamps are stored and bucketed. date.today()
+    # is the server's local date, so wherever local and UTC dates differ the
+    # range and the buckets disagree and a session recorded moments ago falls
+    # outside the window it belongs to.
+    end = datetime.now(UTC).date()
     start = end - timedelta(days=days - 1)
 
     # Joining on the summary excludes sessions that are still open: an
