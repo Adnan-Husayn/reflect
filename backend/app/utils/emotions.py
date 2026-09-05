@@ -25,7 +25,7 @@ LABEL_MAP = {
 
 def normalize_scores(native_scores: Mapping[str, float]) -> EmotionPrediction:
     """Map model-specific labels into the one vocabulary used by the API."""
-    canonical_scores = {emotion: 0.0 for emotion in CANONICAL_EMOTIONS}
+    canonical_scores = dict.fromkeys(CANONICAL_EMOTIONS, 0.0)
     for raw_label, score in native_scores.items():
         normalized_label = LABEL_MAP.get(raw_label.strip().lower())
         if normalized_label:
@@ -45,7 +45,6 @@ def softmax_scores(logits: np.ndarray, id2label: Mapping[int | str, str]) -> Emo
     probabilities /= probabilities.sum()
     labels = {str(key): value for key, value in id2label.items()}
     native_scores = {
-        labels.get(str(index), f"label_{index}"): float(score)
-        for index, score in enumerate(probabilities)
+        labels.get(str(index), f"label_{index}"): float(score) for index, score in enumerate(probabilities)
     }
     return normalize_scores(native_scores)

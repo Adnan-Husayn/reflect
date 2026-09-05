@@ -5,16 +5,7 @@ import { TypedTextFallback } from "./components/TypedTextFallback";
 import { useLiveSession } from "./hooks/useLiveSession";
 import { analyzeFacial, analyzeLiveAudio, analyzeText } from "./services/api";
 import type { EmotionPrediction } from "./types/emotion";
-
-const EMOTIONS = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"] as const;
-
-function averagePredictions(predictions: EmotionPrediction[]): EmotionPrediction {
-  const scores = Object.fromEntries(
-    EMOTIONS.map((emotion) => [emotion, predictions.reduce((sum, prediction) => sum + prediction.scores[emotion], 0) / predictions.length]),
-  ) as EmotionPrediction["scores"];
-  const label = EMOTIONS.reduce((highest, emotion) => scores[emotion] > scores[highest] ? emotion : highest, EMOTIONS[0]);
-  return { label, confidence: scores[label], scores };
-}
+import { appendToHistory, averagePredictions } from "./utils/smoothing";
 
 export default function App() {
   const sessionToken = useRef(0);
@@ -46,7 +37,7 @@ export default function App() {
     try {
       const prediction = await analyzeFacial(image);
       if (requestToken !== sessionToken.current) return;
-      faceHistory.current = [...faceHistory.current.slice(-4), prediction];
+      faceHistory.current = appendToHistory(faceHistory.current, prediction);
       setFacePrediction(averagePredictions(faceHistory.current));
       setFaceError(null);
       setFaceState("Reading visible expression");

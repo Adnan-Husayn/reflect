@@ -1,5 +1,5 @@
-from io import BytesIO
 import tempfile
+from io import BytesIO
 
 import librosa
 import numpy as np

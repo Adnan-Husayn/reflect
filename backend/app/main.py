@@ -9,6 +9,7 @@ from app.models.audio_emotion import AudioEmotionModel
 from app.models.facial_emotion import FacialEmotionModel
 from app.models.speech_transcription import SpeechTranscriptionModel
 from app.models.text_emotion import TextEmotionModel
+from app.routers.analysis import router as analysis_router
 from app.routers.predictions import router as prediction_router
 from app.schemas.emotion import HealthResponse
 
@@ -44,7 +45,7 @@ async def lifespan(app: FastAPI):
 settings = get_settings()
 app = FastAPI(
     title="Reflect — PCS26/146 Emotion Analysis API",
-    version="0.1.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -55,6 +56,7 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 app.include_router(prediction_router)
+app.include_router(analysis_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])
