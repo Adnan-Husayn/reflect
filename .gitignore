@@ -17,7 +17,9 @@ frontend/vite.config.d.ts
 
 # Model and local caches
 .cache/
-models/
+# Anchored to the repository root: an unanchored models/ also matched the
+# backend/app/models source package and kept it out of the repository.
+/models/
 *.bin
 *.safetensors
 
