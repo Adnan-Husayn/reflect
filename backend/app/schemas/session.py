@@ -9,11 +9,11 @@ Forbidding unknown fields makes that a 422 instead of a silent regression.
 
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.instruments import INSTRUMENTS
+from app.instruments.phq8 import score_responses
 from app.schemas.emotion import CANONICAL_EMOTIONS, CHANNELS
-
-INSTRUMENTS = ("PHQ-8", "GAD-7")
 
 
 class StrictModel(BaseModel):
@@ -143,6 +143,13 @@ class SessionListItem(SessionOut):
 
 
 class CheckInIn(StrictModel):
+    """One self-report submission.
+
+    `score` is recomputed from `responses` and the submission is rejected if the
+    two disagree, rather than storing what the client claimed. Before this, a
+    PHQ-8 with two answers and a score of 9999 was a valid request.
+    """
+
     taken_on: date
     instrument: str
     responses: dict[str, int]
@@ -152,8 +159,18 @@ class CheckInIn(StrictModel):
     @classmethod
     def known_instrument(cls, instrument: str) -> str:
         if instrument not in INSTRUMENTS:
-            raise ValueError(f"Instrument must be one of: {', '.join(INSTRUMENTS)}.")
+            raise ValueError(f"Instrument must be one of: {', '.join(sorted(INSTRUMENTS))}.")
         return instrument
+
+    @model_validator(mode="after")
+    def score_matches_responses(self) -> "CheckInIn":
+        instrument = INSTRUMENTS.get(self.instrument)
+        if instrument is None:
+            return self
+        computed = score_responses(instrument, self.responses)
+        if computed != self.score:
+            raise ValueError(f"Score {self.score} does not match the responses, which total {computed}.")
+        return self
 
 
 class CheckInOut(BaseModel):

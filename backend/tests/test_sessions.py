@@ -34,6 +34,12 @@ def fused(offset: int, label: str, conflict: bool = False, **weights: float) -> 
     }
 
 
+def phq8(**answers: int) -> dict:
+    """A complete PHQ-8 payload. Unnamed items answer 0."""
+    responses = {f"q{index}": answers.get(f"q{index}", 0) for index in range(1, 9)}
+    return {"responses": responses, "score": sum(responses.values())}
+
+
 def open_session(api: TestClient) -> str:
     response = api.post("/sessions")
     assert response.status_code == 201
@@ -216,7 +222,7 @@ def test_withdrawal_erases_every_session_and_checkin(api: TestClient):
     open_session(api)
     api.post(
         "/checkins",
-        json={"taken_on": "2026-09-05", "instrument": "PHQ-8", "responses": {"q1": 2}, "score": 2},
+        json={"taken_on": "2026-09-05", "instrument": "PHQ-8", **phq8(q1=2)},
     )
 
     receipt = api.delete("/users/me/data").json()
@@ -237,12 +243,7 @@ def test_deleting_an_unknown_session_is_a_404(api: TestClient):
 
 
 def test_checkin_is_recorded_and_listed(api: TestClient):
-    payload = {
-        "taken_on": "2026-09-05",
-        "instrument": "PHQ-8",
-        "responses": {"q1": 1, "q2": 3},
-        "score": 4,
-    }
+    payload = {"taken_on": "2026-09-05", "instrument": "PHQ-8", **phq8(q1=1, q2=3)}
     assert api.post("/checkins", json=payload).status_code == 201
     listed = api.get("/checkins").json()
     assert len(listed) == 1
@@ -251,12 +252,7 @@ def test_checkin_is_recorded_and_listed(api: TestClient):
 
 
 def test_one_checkin_per_instrument_per_day(api: TestClient):
-    payload = {
-        "taken_on": "2026-09-05",
-        "instrument": "PHQ-8",
-        "responses": {"q1": 1},
-        "score": 1,
-    }
+    payload = {"taken_on": "2026-09-05", "instrument": "PHQ-8", **phq8(q1=1)}
     assert api.post("/checkins", json=payload).status_code == 201
     assert api.post("/checkins", json=payload).status_code == 409
 
@@ -264,10 +260,5 @@ def test_one_checkin_per_instrument_per_day(api: TestClient):
 def test_phq9_is_refused_because_phq8_is_the_chosen_instrument(api: TestClient):
     """PHQ-8 drops the suicidality item; accepting PHQ-9 would pull in a
     risk-management burden the project is explicitly not equipped for."""
-    payload = {
-        "taken_on": "2026-09-05",
-        "instrument": "PHQ-9",
-        "responses": {"q1": 1},
-        "score": 1,
-    }
+    payload = {"taken_on": "2026-09-05", "instrument": "PHQ-9", **phq8(q1=1)}
     assert api.post("/checkins", json=payload).status_code == 422

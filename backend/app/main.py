@@ -10,6 +10,7 @@ from app.models.facial_emotion import FacialEmotionModel
 from app.models.speech_transcription import SpeechTranscriptionModel
 from app.models.text_emotion import TextEmotionModel
 from app.routers.analysis import router as analysis_router
+from app.routers.instruments import router as instruments_router
 from app.routers.predictions import router as prediction_router
 from app.routers.sessions import router as sessions_router
 from app.routers.trends import router as trends_router
@@ -61,6 +62,7 @@ app.include_router(prediction_router)
 app.include_router(analysis_router)
 app.include_router(sessions_router)
 app.include_router(trends_router)
+app.include_router(instruments_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])
