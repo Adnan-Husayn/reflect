@@ -245,3 +245,24 @@ def test_a_thin_day_comes_back_as_a_gap(api: TestClient, db_session):
 def test_the_day_range_is_bounded(api: TestClient):
     assert api.get("/trends?days=0").status_code == 422
     assert api.get("/trends?days=400").status_code == 422
+
+
+def test_the_range_is_built_in_utc_not_the_server_local_date(api: TestClient):
+    """Timestamps are stored and bucketed in UTC.
+
+    Using date.today() for the range basis put it on the server's local date,
+    so wherever local and UTC dates differ a session recorded moments earlier
+    fell outside the window it belonged to. Only visible when the two dates
+    diverge, which is most of every day in India.
+    """
+    body = api.get("/trends?days=1").json()
+    assert body["end"] == datetime.now(UTC).date().isoformat()
+
+
+def test_a_session_recorded_now_lands_in_the_final_bucket(api: TestClient, db_session):
+    now = datetime.now(UTC)
+    with db_session() as db:
+        seed_session(db, started=now, n_fused=50, valence=0.5, conflict=0.1)
+
+    buckets = api.get("/trends?days=2").json()["buckets"]
+    assert buckets[-1]["n_sessions"] == 1
