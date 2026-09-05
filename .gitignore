@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+.ruff_cache/
 *.py[cod]
 .pytest_cache/
 .venv/
@@ -7,6 +8,7 @@ backend/.env
 
 # JavaScript
 frontend/node_modules/
+frontend/coverage/
 frontend/dist/
 frontend/.env
 frontend/*.tsbuildinfo
@@ -15,7 +17,9 @@ frontend/vite.config.d.ts
 
 # Model and local caches
 .cache/
-models/
+# Anchored to the repository root: an unanchored models/ also matched the
+# backend/app/models source package and kept it out of the repository.
+/models/
 *.bin
 *.safetensors
 

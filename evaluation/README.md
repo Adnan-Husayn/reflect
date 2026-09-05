@@ -1,6 +1,14 @@
 # Evaluation notes
 
-v0.1 evaluates text, audio, and facial-expression predictions independently. No combined score should be calculated during evaluation.
+Evaluate each modality independently first: per-channel accuracy is what the fusion weights are derived from, so a combined score computed before those numbers exist would be circular.
+
+The fused output is then evaluated as its own system, against the same labelled data:
+
+- **Fusion weights** come from measured per-modality reliability (inverse-error or accuracy-proportional), not from taste. Equal weights are the current placeholder.
+- **The conflict threshold** (`conflict_threshold`, provisionally 0.35) should be derived from the divergence distribution on labelled data, reported with an ROC curve rather than picked by hand.
+- **Attenuation** should be checked for the property it exists to guarantee: that readings whose channels disagree are not reported as confident.
+
+RAVDESS is well suited to the threshold work: its actors speak fixed, emotionally neutral sentences with different emotional deliveries, so the text channel is neutral by construction while voice and face carry the emotion. That gives labelled cross-modal disagreement without staging it yourself.
 
 When a labelled dataset is available, add modality-specific samples under this directory:
 
