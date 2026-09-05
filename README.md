@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml/badge.svg)](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml)
 
-## v0.3: live session with late fusion and cross-channel conflict detection
+## v0.4: session persistence
 
 This B.Tech project MVP provides a live, conversation-style analysis session. It transcribes short spoken-English segments locally and returns indicators for spoken words, vocal expression, and visible facial expression.
 
@@ -21,6 +21,8 @@ Implemented:
 - Collapsed typed-text fallback for accessibility and testing
 - A shared response schema and canonical emotion labels
 - Weighted late fusion with the per-channel components always visible
+- Session persistence for derived score vectors, with per-session and full-withdrawal deletion
+- Optional PHQ-8 / GAD-7 self-report check-ins
 - Cross-channel divergence scoring, used both to flag conflict and to attenuate fused confidence
 
 Planned for later milestones:
@@ -55,6 +57,7 @@ anger, disgust, fear, joy, neutral, sadness, surprise
 
 - Frontend: React, Vite, TypeScript, Tailwind CSS, browser MediaRecorder and camera APIs
 - Backend: FastAPI, Pydantic, PyTorch, Transformers, faster-whisper, Librosa, OpenCV, Pillow
+- Persistence: SQLAlchemy and Alembic. Postgres in Docker and CI; SQLite by default locally, so development and the unit suite need no running services
 - Local development: Docker Compose or separate local frontend/backend processes
 
 ## Pretrained model provenance
@@ -101,6 +104,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt   # runtime deps plus pytest and ruff
 cp .env.example .env
+alembic upgrade head                  # creates the schema and seeds the local user
 uvicorn app.main:app --reload
 ```
 
@@ -216,9 +220,61 @@ A conflict means the channels disagree. It is **not** evidence that a person is 
 
 **Both the `conflict_threshold` of 0.35 and the equal fusion weights are provisional.** The threshold separates strong conflicts from normal variation but misses subtler disagreement, and equal weights assume every modality is equally reliable, which is certainly false. Derive both from held-out labelled data — RAVDESS holds emotion constant across a fixed neutral sentence, which makes it well suited to deriving the threshold — before publishing any accuracy claim.
 
+### Session persistence
+
+The prediction endpoints stay pure — they persist nothing. Sessions are written
+through a separate router, so the evaluation harness can drive `/predict/*`
+1,440 times per run without forging a thousand sessions of fake history.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /sessions` | Open a session, returns its id |
+| `POST /sessions/{id}/readings` | Append a batch of derived readings |
+| `POST /sessions/{id}/end` | Close the session and compute its rollup |
+| `GET /sessions` | List sessions with summaries |
+| `GET /sessions/{id}` | One session, its summary and readings |
+| `DELETE /sessions/{id}` | Erase one session and everything derived from it |
+| `DELETE /users/me/data` | Erase every session, reading and check-in |
+| `POST /checkins` | Record one PHQ-8 / GAD-7 self-report |
+| `GET /checkins` | List check-ins |
+
+Readings are posted in batches: a live session emits a facial reading every two
+seconds and an audio segment every five, so one request per reading would triple
+the request volume for no benefit.
+
+Posting readings to an ended session returns `409`, as does ending one twice.
+
+**`mean_valence` is computed over fused readings only.** Averaging the
+per-channel readings instead would let the facial channel dominate — it samples
+every 2s against the audio channel's 5s, so its readings outnumber them roughly
+2.5 to 1, and the mean would track the sampling rate rather than the mood.
+Valence uses the whole score vector rather than the argmax, so a reading that is
+0.5 sadness and 0.4 joy is not recorded as if it were purely sad. Surprise sits
+at zero because its valence is genuinely ambiguous; the constant is named in
+`app/utils/valence.py` so it can be revisited when the distress construct is
+defined.
+
+`channel_counts` holds reading counts per channel rather than proportions: the
+question it answers is whether a channel was available at all — a denied camera
+shows as no face readings — and proportions would merely restate the sampling
+rates.
+
+Authentication is not implemented yet. The initial migration seeds one local
+user and every session attaches to it, but `user_id` is present from that first
+migration and every session-scoped query already filters on it, so real accounts
+are a change to how the user is resolved rather than a schema migration.
+
 ## Limitations and privacy
 
-This MVP is designed for controlled academic demonstration. It does not provide clinical assessment, therapeutic advice, or generated therapist replies, and should not be used to make medical, employment, safety, or high-impact decisions. Audio segments, camera frames, and transcripts are processed in request memory or short-lived temporary storage only; the application does not save user inputs or add analytics/telemetry.
+This MVP is designed for controlled academic demonstration. It does not provide clinical assessment, therapeutic advice, or generated therapist replies, and should not be used to make medical, employment, safety, or high-impact decisions.
+
+**What is never stored.** Audio segments, camera frames and transcripts are processed in request memory or short-lived temporary storage only. They are never written to the database. The prediction endpoints persist nothing at all, and the persistence API has no multipart endpoint and no bytes-typed column anywhere in its schema, so it cannot store media regardless of what a caller sends. `backend/tests/test_no_media_persisted.py` asserts this by introspecting every column, and reading schemas set `extra="forbid"` so an unexpected `transcript` field is a 422 rather than something silently accepted.
+
+**What is stored, once a session is opened.** Derived score vectors, labels, confidences, the fused reading and its divergence, plus timestamps and a session rollup. Because transcripts are not kept, session replay shows emotion trajectories but never the words spoken. That is the intended trade.
+
+**Withdrawal.** `DELETE /sessions/{id}` erases one session and everything derived from it; `DELETE /users/me/data` erases every session, reading and check-in for the user. Both delete rows outright rather than marking them inactive, and both return a receipt of what was removed.
+
+No analytics or telemetry are collected.
 
 Facial output is a visible-expression indicator, not a measurement of a person's internal emotion. It may be inaccurate in poor lighting, with occlusion, profile angles, or outside its training conditions. The English transcription model is local and intentionally limited to English in this release.
 
@@ -226,7 +282,7 @@ Facial output is a visible-expression indicator, not a measurement of a person's
 
 Both suites run in CI on every push and pull request.
 
-Backend — 37 tests, from `backend/`:
+Backend — 72 tests, from `backend/`:
 
 ```bash
 pytest
