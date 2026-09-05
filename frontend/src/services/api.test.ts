@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { analyzeFacial, analyzeLiveAudio, analyzeText } from "./api";
-import { makePrediction } from "../test/factories";
+import {
+  analyzeFacial,
+  analyzeLiveAudio,
+  analyzeText,
+  createSession,
+  endSession,
+  fuseChannels,
+  postReadings,
+} from "./api";
+import { makeFusion, makePrediction, makeScores } from "../test/factories";
 
 const prediction = makePrediction({ joy: 0.87, neutral: 0.13 });
 
@@ -74,5 +82,112 @@ describe("api client", () => {
     expect(result.transcript).toBe("I feel calmer today.");
     expect(result.audio_prediction?.label).toBe("neutral");
     expect(result.text_prediction?.label).toBe("joy");
+  });
+});
+
+describe("fusion and session persistence", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("sends only the channels that have a reading", async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse(makeFusion()));
+
+    await fuseChannels({ text: makeScores({ joy: 1 }), voice: makeScores({ sadness: 1 }) });
+
+    const [url, options] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/analyze/fusion");
+    expect(JSON.parse(String(options?.body))).toEqual({
+      text: makeScores({ joy: 1 }),
+      voice: makeScores({ sadness: 1 }),
+    });
+  });
+
+  it("returns the fused reading with its attenuation", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse(makeFusion({ confidence: 0.07, rawConfidence: 0.55, conflict: true })),
+    );
+
+    const analysis = await fuseChannels({ text: makeScores({ joy: 1 }) });
+
+    expect(analysis.fused?.confidence).toBe(0.07);
+    expect(analysis.fused?.raw_confidence).toBe(0.55);
+    expect(analysis.conflict.conflict_detected).toBe(true);
+  });
+
+  it("opens a session", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ id: "s-1", started_at: "2026-09-05T12:00:00Z", ended_at: null }),
+    );
+
+    await expect(createSession()).resolves.toMatchObject({ id: "s-1" });
+    const [url, options] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/sessions");
+    expect(options?.method).toBe("POST");
+  });
+
+  it("posts a reading batch to the session", async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({}));
+    const batch = {
+      readings: [
+        {
+          t: "2026-09-05T12:00:00.000Z",
+          channel: "face" as const,
+          label: "joy" as const,
+          confidence: 0.8,
+          scores: makeScores({ joy: 1 }),
+        },
+      ],
+      fused: [],
+    };
+
+    await postReadings("s-1", batch);
+
+    const [url, options] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/sessions/s-1/readings");
+    expect(JSON.parse(String(options?.body))).toEqual(batch);
+  });
+
+  it("never includes a transcript field in a reading batch", async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({}));
+
+    await postReadings("s-1", {
+      readings: [
+        {
+          t: "2026-09-05T12:00:00.000Z",
+          channel: "text",
+          label: "joy",
+          confidence: 0.8,
+          scores: makeScores({ joy: 1 }),
+        },
+      ],
+      fused: [],
+    });
+
+    const body = String(vi.mocked(fetch).mock.calls[0][1]?.body);
+    expect(body).not.toContain("transcript");
+    expect(Object.keys(JSON.parse(body).readings[0]).sort()).toEqual([
+      "channel",
+      "confidence",
+      "label",
+      "scores",
+      "t",
+    ]);
+  });
+
+  it("closes the session and returns its summary", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ session_id: "s-1", n_readings: 3, mean_valence: 0.4 }),
+    );
+
+    const summary = await endSession("s-1");
+
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain("/sessions/s-1/end");
+    expect(summary.mean_valence).toBe(0.4);
   });
 });
