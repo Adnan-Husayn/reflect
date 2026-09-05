@@ -39,6 +39,25 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     session_max_age_days: int = 14
 
+    # Distress observation thresholds. Every one is provisional and is to
+    # be re-derived from the RAVDESS evaluation, exactly like the fusion
+    # weights and the conflict threshold above. When M2 lands, calibration
+    # is an edit to this file rather than a rewrite.
+    distress_window_days: int = 7
+    # A fused reading below this valence counts as low-valence.
+    distress_low_valence: float = -0.2
+    # Share of a day's readings that must qualify for the day to qualify.
+    distress_low_valence_share: float = 0.4
+    distress_conflict_share: float = 0.4
+    # Qualifying days needed in the window before anything is called
+    # sustained. A single bad day must never be a signal.
+    distress_sustained_days: int = 3
+    # Readings needed for a day to count as measured at all.
+    distress_minimum_readings_per_day: int = 20
+    # Days with data needed before anything is reported, in either
+    # direction. Below this the answer is 'not enough data', never 'steady'.
+    distress_minimum_days: int = 3
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
