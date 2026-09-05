@@ -105,3 +105,38 @@ footer { border-top: 1px solid #dbe3ed; color: #64748b; font-size: .8rem; line-h
 .typed-fallback .live-indicator { margin-top: .6rem; }
 @media (max-width: 860px) { .session-layout { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .session-heading, .indicator-heading, .transcript-panel > div { flex-direction: column; gap: .5rem; } .start-session-button, .end-session-button { width: 100%; } .session-status > span:not(.status-dot) { border-left: 0; padding-left: 0; } }
+
+/* ── Fused reading ──────────────────────────────────────────────── */
+.fused-indicator { border: 1px solid #cbd5e1; border-radius: .65rem; padding: 1.1rem; background: #f8fafc; }
+.fused-indicator.conflict { border-color: #e7c9b8; background: #fdf6f2; }
+.fused-heading { align-items: baseline; display: flex; gap: .75rem; justify-content: space-between; }
+.fused-heading h2 { color: #0f172a; font-size: .95rem; letter-spacing: .01em; margin: 0; }
+.fused-channel-count { color: #64748b; font-size: .72rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fused-result { align-items: baseline; display: flex; flex-wrap: wrap; gap: .55rem; margin: .7rem 0 .3rem; }
+.fused-result strong { color: #0f172a; font-size: 1.65rem; letter-spacing: -.02em; line-height: 1.1; }
+.fused-confidence { color: #475569; font-size: .84rem; font-variant-numeric: tabular-nums; }
+.fused-agreement, .fused-conflict-detail { color: #475569; font-size: .82rem; line-height: 1.5; margin: .35rem 0 0; }
+.fused-conflict-headline { color: #9a4a2c; font-size: .95rem; font-weight: 650; line-height: 1.35; margin: .55rem 0 .25rem; }
+.fused-indicator.conflict .fused-conflict-detail { color: #7c4a33; }
+
+.divergence { margin-top: .95rem; }
+.divergence-track { background: #e2e8f0; border-radius: 99px; height: .3rem; position: relative; }
+.divergence-fill { background: #64748b; border-radius: 99px; height: 100%; }
+.fused-indicator.conflict .divergence-fill { background: #9a4a2c; }
+.divergence-threshold { background: #94a3b8; bottom: -.22rem; position: absolute; top: -.22rem; width: 1px; }
+.divergence-scale { color: #64748b; display: flex; font-size: .68rem; font-variant-numeric: tabular-nums; justify-content: space-between; padding-top: .35rem; }
+.divergence-reading { color: #475569; font-size: .8rem; line-height: 1.5; margin: .5rem 0 0; }
+.divergence-reading strong { color: #0f172a; font-variant-numeric: tabular-nums; }
+
+.divergence-details { margin-top: .7rem; }
+.divergence-details summary { color: #2563eb; cursor: pointer; font-size: .8rem; }
+.divergence-details table { border-collapse: collapse; font-size: .78rem; margin-top: .5rem; width: 100%; }
+.divergence-details th { color: #64748b; font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
+.divergence-details th:not(:first-child), .divergence-details td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.divergence-details th, .divergence-details td { border-bottom: 1px solid #e2e8f0; padding: .35rem .3rem; }
+.divergence-details td { color: #334155; }
+
+.fused-caveat { border-top: 1px solid #e2e8f0; color: #64748b; font-size: .74rem; line-height: 1.55; margin: .85rem 0 0; padding-top: .7rem; }
+.fused-caveat strong { color: #334155; }
+
+.not-recording { background: #f1f5f9; border-radius: 999px; color: #64748b; font-size: .7rem; font-weight: 650; padding: .18rem .5rem; }
