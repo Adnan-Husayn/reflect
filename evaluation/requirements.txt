@@ -1,0 +1,7 @@
+# Evaluation harness only. The backend has its own requirements; this talks to
+# the running API over HTTP rather than importing it.
+httpx==0.28.1
+numpy==2.1.3
+opencv-python-headless==4.10.0.84
+scikit-learn==1.6.0
+matplotlib==3.10.0

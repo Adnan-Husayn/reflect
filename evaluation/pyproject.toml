@@ -1,0 +1,23 @@
+[project]
+name = "reflect-evaluation"
+version = "0.1.0"
+description = "RAVDESS evaluation harness for Reflect (PCS26/146)"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+# The scripts prepend the package root to sys.path before importing it, which
+# necessarily puts those imports below the top of the file.
+"scripts/*" = ["E402"]
