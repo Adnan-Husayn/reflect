@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml/badge.svg)](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml)
 
-## v0.4: fused live session, recorded
+## v0.5: trends over recorded sessions
 
 This B.Tech project MVP provides a live, conversation-style analysis session. It transcribes short spoken-English segments locally and returns indicators for spoken words, vocal expression, and visible facial expression.
 
@@ -23,6 +23,7 @@ Implemented:
 - Weighted late fusion with the per-channel components always visible
 - A fused headline in the live session, shown above the three channels and never instead of them
 - Session recording for derived score vectors, with per-session and full-withdrawal deletion
+- A trends view: mood valence, cross-channel conflict and channel coverage over time
 - Optional PHQ-8 / GAD-7 self-report check-ins
 - Cross-channel divergence scoring, used both to flag conflict and to attenuate fused confidence
 
@@ -238,6 +239,7 @@ through a separate router, so the evaluation harness can drive `/predict/*`
 | `DELETE /users/me/data` | Erase every session, reading and check-in |
 | `POST /checkins` | Record one PHQ-8 / GAD-7 self-report |
 | `GET /checkins` | List check-ins |
+| `GET /trends` | Daily buckets over the recorded sessions |
 
 Readings are posted in batches: a live session emits a facial reading every two
 seconds and an audio segment every five, so one request per reading would triple
@@ -265,6 +267,22 @@ user and every session attaches to it, but `user_id` is present from that first
 migration and every session-scoped query already filters on it, so real accounts
 are a change to how the user is resolved rather than a schema migration.
 
+### `GET /trends`
+
+Daily buckets over completed sessions, with the aggregation done on the server. The valence definition lives in `app/utils/valence.py`; a second implementation in the browser would drift from it, and the definition of the tracked construct has to stay in one file.
+
+Three rules stop the charts lying about sparse days. A day holding one 30-second session and a day holding four 20-minute ones are not comparable, and a naive daily mean draws them at the same weight — so one bad frame on a quiet Tuesday would show up as a visible dip in someone's mood trend.
+
+- **Daily means are weighted by fused-reading count**, not by session, so a long session counts for more than a short one.
+- **Every bucket carries `n_sessions` and `n_fused_readings`**, and the interface shows them beside the value in the tooltip.
+- **A day below `MINIMUM_READINGS_PER_DAY` returns `null`, not a number**, so the chart draws a gap. Null rather than zero: zero would read as neutral mood.
+
+The rolling window weights across the whole trailing period rather than averaging daily means, so a thin-but-sufficient day does not count as much as a heavy one, and gap days contribute nothing. Sessions that are still open have no rollup and are excluded.
+
+The response carries `minimum_readings_per_day` and `rolling_window_days` so the interface can state the rules it is drawing under rather than hardcoding numbers that would drift.
+
+**Every chart says what it is computed from, on screen**, next to the chart rather than only in the report. Mood valence is a weighted mean over fused readings using the valence map where joy is +1; anger, disgust, fear and sadness are −1; and neutral and surprise are 0. A reader who cannot see that has been handed a number they cannot evaluate.
+
 ## Limitations and privacy
 
 This MVP is designed for controlled academic demonstration. It does not provide clinical assessment, therapeutic advice, or generated therapist replies, and should not be used to make medical, employment, safety, or high-impact decisions.
@@ -287,7 +305,7 @@ Facial output is a visible-expression indicator, not a measurement of a person's
 
 Both suites run in CI on every push and pull request.
 
-Backend — 72 tests, from `backend/`:
+Backend — 90 tests, from `backend/`:
 
 ```bash
 pytest
@@ -295,7 +313,7 @@ ruff check .
 ruff format --check .
 ```
 
-Frontend — 53 tests, from `frontend/`:
+Frontend — 77 tests, from `frontend/`:
 
 ```bash
 npm test
