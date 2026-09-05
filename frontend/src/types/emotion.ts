@@ -98,3 +98,53 @@ export interface SessionSummary {
   channel_counts: Partial<Record<Channel, number>>;
   computed_at: string;
 }
+
+/** Mirrors backend/app/schemas/trends.py. */
+export interface TrendBucket {
+  date: string;
+  n_sessions: number;
+  n_fused_readings: number;
+  /** Null on a day below the reading minimum — draw a gap, never a zero. */
+  mean_valence: number | null;
+  rolling_valence: number | null;
+  conflict_rate: number | null;
+  channel_counts: Partial<Record<Channel, number>>;
+  sufficient: boolean;
+}
+
+export interface TrendsOut {
+  start: string;
+  end: string;
+  buckets: TrendBucket[];
+  minimum_readings_per_day: number;
+  rolling_window_days: number;
+}
+
+export interface SessionListItem extends SessionOut {
+  summary: SessionSummary | null;
+}
+
+export interface ReadingOut {
+  t: string;
+  channel: Channel;
+  label: EmotionLabel;
+  confidence: number;
+  scores: EmotionScores;
+}
+
+export interface FusedReadingOut {
+  t: string;
+  label: EmotionLabel;
+  confidence: number;
+  raw_confidence: number;
+  attenuation: number;
+  max_divergence: number | null;
+  conflict: boolean;
+  scores: EmotionScores;
+}
+
+export interface SessionDetail extends SessionOut {
+  summary: SessionSummary | null;
+  readings: ReadingOut[];
+  fused_readings: FusedReadingOut[];
+}

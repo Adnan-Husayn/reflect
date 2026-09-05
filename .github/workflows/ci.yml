@@ -3,8 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+  # Every pull request, not only those targeting main: a stacked PR onto
+  # another feature branch got no CI at all, which is when review is
+  # hardest and the checks are worth most.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

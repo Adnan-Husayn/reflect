@@ -12,6 +12,7 @@ from app.models.text_emotion import TextEmotionModel
 from app.routers.analysis import router as analysis_router
 from app.routers.predictions import router as prediction_router
 from app.routers.sessions import router as sessions_router
+from app.routers.trends import router as trends_router
 from app.schemas.emotion import HealthResponse
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -59,6 +60,7 @@ app.add_middleware(
 app.include_router(prediction_router)
 app.include_router(analysis_router)
 app.include_router(sessions_router)
+app.include_router(trends_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])

@@ -4,6 +4,8 @@ import type {
   EmotionPrediction,
   EmotionScores,
   FusionAnalysis,
+  TrendBucket,
+  TrendsOut,
 } from "../types/emotion";
 
 const EMOTIONS: EmotionLabel[] = [
@@ -73,5 +75,48 @@ export function makeFusion({
       threshold: 0.35,
       conflict_detected: conflict,
     },
+  };
+}
+
+interface BucketOptions {
+  date: string;
+  sessions?: number;
+  readings?: number;
+  valence?: number | null;
+  rolling?: number | null;
+  conflict?: number | null;
+  counts?: Partial<Record<Channel, number>>;
+}
+
+/** A day below the minimum comes back as a gap: nulls, not zeros. */
+export function makeBucket({
+  date,
+  sessions = 1,
+  readings = 60,
+  valence = 0.4,
+  rolling = 0.35,
+  conflict = 0.2,
+  counts = { text: 12, voice: 12, face: 30 },
+}: BucketOptions): TrendBucket {
+  const sufficient = readings >= 20;
+  return {
+    date,
+    n_sessions: sessions,
+    n_fused_readings: readings,
+    mean_valence: sufficient ? valence : null,
+    rolling_valence: sufficient ? rolling : null,
+    conflict_rate: sufficient ? conflict : null,
+    channel_counts: counts,
+    sufficient,
+  };
+}
+
+export function makeTrends(buckets: TrendBucket[]): TrendsOut {
+  return {
+    start: buckets[0]?.date ?? "2026-09-01",
+    end: buckets[buckets.length - 1]?.date ?? "2026-09-01",
+    buckets,
+    minimum_readings_per_day: 20,
+    rolling_window_days: 7,
   };
 }
