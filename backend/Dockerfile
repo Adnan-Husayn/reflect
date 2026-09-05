@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libsndfi
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini .
 
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn app.main:app --host ${API_HOST:-0.0.0.0} --port ${API_PORT:-8000}"]
+# Migrate before serving so a fresh volume comes up with the schema and the
+# seeded local user already in place.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host ${API_HOST:-0.0.0.0} --port ${API_PORT:-8000}"]

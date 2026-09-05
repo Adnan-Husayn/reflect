@@ -15,6 +15,9 @@ frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
 
+# Local database file
+backend/*.db
+
 # Model and local caches
 .cache/
 # Anchored to the repository root: an unanchored models/ also matched the

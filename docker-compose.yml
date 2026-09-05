@@ -1,8 +1,27 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: reflect
+      POSTGRES_PASSWORD: reflect
+      POSTGRES_DB: reflect
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reflect -d reflect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build: ./backend
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://reflect:reflect@db:5432/reflect
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - hf-cache:/root/.cache/huggingface
     healthcheck:
@@ -22,3 +41,4 @@ services:
 
 volumes:
   hf-cache:
+  pgdata:

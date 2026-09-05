@@ -28,6 +28,9 @@ class Settings(BaseSettings):
         }
 
     hf_home: str | None = None
+    # SQLite by default so local development and the unit suite need no
+    # services. Compose and CI override this with Postgres.
+    database_url: str = "sqlite:///./reflect.db"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
