@@ -43,12 +43,29 @@ describe("Trends", () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it("renders all three charts with their captions", async () => {
+  it("renders every chart with its caption", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "Mood valence" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "PHQ-8 check-in score" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cross-channel conflict" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Channel coverage" })).toBeInTheDocument();
     expect(screen.getByText(/Weighted mean over fused readings/)).toBeInTheDocument();
+  });
+
+  it("shows the correlation with its sample size", async () => {
+    vi.spyOn(api, "getTrends").mockResolvedValue(
+      makeTrends(trends.buckets, { r: -0.58, n: 9, minimum_pairs: 4 }),
+    );
+    renderPage();
+
+    expect(await screen.findByText("r = -0.58")).toBeInTheDocument();
+    expect(screen.getByText("over n = 9 paired days")).toBeInTheDocument();
+  });
+
+  it("withholds the correlation until there are enough pairs", async () => {
+    renderPage();
+    expect(await screen.findByText(/0 of the 4 needed/)).toBeInTheDocument();
+    expect(screen.queryByText(/^r = /)).not.toBeInTheDocument();
   });
 
   it("lists recorded sessions as links", async () => {

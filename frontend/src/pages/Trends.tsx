@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChannelCoverage } from "../components/charts/ChannelCoverage";
+import { CheckInTrend } from "../components/charts/CheckInTrend";
 import { ConflictTrend } from "../components/charts/ConflictTrend";
+import { CorrelationNote } from "../components/CorrelationNote";
 import { ValenceTrend } from "../components/charts/ValenceTrend";
 import { EmptyState } from "../components/EmptyState";
 import { StatusMessage } from "../components/StatusMessage";
@@ -77,6 +79,12 @@ export function Trends() {
           <>
             <div className="chart-stack">
               <ValenceTrend trends={trends} />
+              {/* Stacked below valence on the same date axis rather than
+                  overlaid on a second y-axis — the two scales run in opposite
+                  directions and sharing one chart would imply a relationship
+                  the scaling chose. */}
+              <CheckInTrend trends={trends} />
+              <CorrelationNote correlation={trends.correlation} />
               <ConflictTrend trends={trends} />
               <ChannelCoverage trends={trends} />
             </div>

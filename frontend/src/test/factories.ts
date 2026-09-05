@@ -4,6 +4,8 @@ import type {
   EmotionPrediction,
   EmotionScores,
   FusionAnalysis,
+  Correlation,
+  Instrument,
   TrendBucket,
   TrendsOut,
 } from "../types/emotion";
@@ -86,6 +88,7 @@ interface BucketOptions {
   rolling?: number | null;
   conflict?: number | null;
   counts?: Partial<Record<Channel, number>>;
+  checkin?: number | null;
 }
 
 /** A day below the minimum comes back as a gap: nulls, not zeros. */
@@ -97,6 +100,7 @@ export function makeBucket({
   rolling = 0.35,
   conflict = 0.2,
   counts = { text: 12, voice: 12, face: 30 },
+  checkin = null,
 }: BucketOptions): TrendBucket {
   const sufficient = readings >= 20;
   return {
@@ -108,15 +112,39 @@ export function makeBucket({
     conflict_rate: sufficient ? conflict : null,
     channel_counts: counts,
     sufficient,
+    checkin_score: checkin,
   };
 }
 
-export function makeTrends(buckets: TrendBucket[]): TrendsOut {
+export function makeTrends(
+  buckets: TrendBucket[],
+  correlation: Correlation = { r: null, n: 0, minimum_pairs: 4 },
+): TrendsOut {
   return {
     start: buckets[0]?.date ?? "2026-09-01",
     end: buckets[buckets.length - 1]?.date ?? "2026-09-01",
     buckets,
     minimum_readings_per_day: 20,
     rolling_window_days: 7,
+    correlation,
+  };
+}
+
+export function makeInstrument(): Instrument {
+  return {
+    code: "PHQ-8",
+    name: "Patient Health Questionnaire-8",
+    prompt: "Over the last 2 weeks, how often have you been bothered by any of the following problems?",
+    max_score: 24,
+    items: Array.from({ length: 8 }, (_, index) => ({
+      id: `q${index + 1}`,
+      text: `Item ${index + 1}`,
+    })),
+    options: [
+      { value: 0, label: "Not at all" },
+      { value: 1, label: "Several days" },
+      { value: 2, label: "More than half the days" },
+      { value: 3, label: "Nearly every day" },
+    ],
   };
 }
