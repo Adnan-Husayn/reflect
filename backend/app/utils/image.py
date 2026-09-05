@@ -14,9 +14,7 @@ def decode_and_crop_largest_face(image_bytes: bytes) -> Image.Image:
 
     image_array = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
-    detector = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    )
+    detector = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
     faces = detector.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40))
     if len(faces) == 0:
         raise LookupError("No face was detected in the captured image.")
