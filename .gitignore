@@ -27,3 +27,7 @@ frontend/vite.config.d.ts
 .DS_Store
 .idea/
 .vscode/
+
+# Evaluation data and results (large; regenerate with evaluation/scripts)
+evaluation/data/
+evaluation/results/
