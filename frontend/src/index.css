@@ -140,3 +140,49 @@ footer { border-top: 1px solid #dbe3ed; color: #64748b; font-size: .8rem; line-h
 .fused-caveat strong { color: #334155; }
 
 .not-recording { background: #f1f5f9; border-radius: 999px; color: #64748b; font-size: .7rem; font-weight: 650; padding: .18rem .5rem; }
+
+/* ── Navigation and pages ───────────────────────────────────────── */
+.app-nav { border-bottom: 1px solid #e2e8f0; display: flex; gap: 1.25rem; padding: 0 max(1.25rem, calc((100% - 1180px) / 2)); background: #fff; }
+.app-nav-link { border-bottom: 2px solid transparent; color: #64748b; display: inline-block; font-size: .88rem; font-weight: 600; padding: .85rem .1rem; text-decoration: none; }
+.app-nav-link:hover { color: #334155; }
+.app-nav-link.active { border-bottom-color: #2563eb; color: #0f172a; }
+
+.range-picker { display: flex; gap: .4rem; margin-bottom: 1.5rem; }
+.range-button { background: #fff; border: 1px solid #dbe3ed; border-radius: .5rem; color: #475569; font-size: .82rem; font-weight: 600; padding: .4rem .75rem; }
+.range-button.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+
+.loading-note { color: #64748b; font-size: .9rem; }
+
+.empty-state { background: #fff; border: 1px dashed #cbd5e1; border-radius: .9rem; padding: 2.25rem 1.5rem; text-align: center; }
+.empty-state h3 { color: #0f172a; font-size: 1.05rem; margin-bottom: .5rem; }
+.empty-state p { color: #64748b; font-size: .9rem; line-height: 1.6; margin: 0 auto; max-width: 46ch; }
+
+/* ── Charts ─────────────────────────────────────────────────────── */
+.chart-stack { display: grid; gap: 1.1rem; }
+.chart-frame { background: #fff; border: 1px solid #dbe3ed; border-radius: .9rem; margin: 0; padding: 1.25rem; }
+.chart-frame figcaption { margin-bottom: 1rem; }
+.chart-frame h3 { color: #0f172a; font-size: 1rem; margin-bottom: .35rem; }
+.chart-computed-from { color: #64748b; font-size: .78rem; line-height: 1.55; margin: 0; max-width: 78ch; }
+.chart-body { overflow-x: auto; }
+
+.chart-tooltip { background: #fff; border: 1px solid #cbd5e1; border-radius: .45rem; box-shadow: 0 4px 12px rgb(15 23 42 / .08); font-size: .78rem; padding: .55rem .7rem; }
+.chart-tooltip strong { color: #0f172a; }
+.chart-tooltip p { color: #475569; margin: .3rem 0 0; }
+.chart-tooltip-counts { color: #94a3b8 !important; font-size: .72rem; font-variant-numeric: tabular-nums; }
+.chart-tooltip-gap { color: #b45309 !important; }
+
+/* ── Session list and detail ────────────────────────────────────── */
+.session-list { background: #fff; border: 1px solid #dbe3ed; border-radius: .9rem; margin-top: 1.1rem; padding: 1.25rem; }
+.session-list h2 { color: #0f172a; font-size: 1rem; margin-bottom: .75rem; }
+.session-list ul { list-style: none; margin: 0; padding: 0; }
+.session-list li { align-items: baseline; border-top: 1px solid #eef2f7; display: flex; flex-wrap: wrap; gap: .5rem .9rem; justify-content: space-between; padding: .6rem 0; }
+.session-list li:first-child { border-top: 0; }
+.session-list a { color: #2563eb; font-size: .9rem; font-weight: 600; }
+.session-list-meta { color: #64748b; font-size: .8rem; font-variant-numeric: tabular-nums; }
+
+.summary-grid { display: grid; gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; border-radius: .9rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0 0 1.1rem; overflow: hidden; }
+.summary-grid > div { background: #fff; padding: 1rem 1.1rem; }
+.summary-grid dt { color: #64748b; font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.summary-grid dd { color: #0f172a; font-size: 1.3rem; font-variant-numeric: tabular-nums; margin: .35rem 0 0; }
+
+.detail-note { color: #64748b; font-size: .8rem; line-height: 1.6; max-width: 72ch; }
