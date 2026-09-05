@@ -5,6 +5,7 @@ import { logout } from "../services/api";
 const links = [
   { to: "/", label: "Live session", end: true },
   { to: "/check-in", label: "Check-in", end: false },
+  { to: "/this-week", label: "This week", end: false },
   { to: "/trends", label: "Trends", end: false },
 ];
 

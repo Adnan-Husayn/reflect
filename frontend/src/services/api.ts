@@ -17,6 +17,7 @@ import type {
   CheckInOut,
   DeletionReceipt,
   Instrument,
+  Wellbeing,
 } from "../types/emotion";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -158,4 +159,8 @@ export function logout(): Promise<void> {
 
 export function getAccount(): Promise<Account> {
   return request("/auth/me", { method: "GET" });
+}
+
+export function getWellbeing(): Promise<Wellbeing> {
+  return request("/wellbeing", { method: "GET" });
 }

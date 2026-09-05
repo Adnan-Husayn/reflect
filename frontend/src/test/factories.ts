@@ -8,6 +8,8 @@ import type {
   Instrument,
   TrendBucket,
   TrendsOut,
+  Wellbeing,
+  WellbeingStatus,
 } from "../types/emotion";
 
 const EMOTIONS: EmotionLabel[] = [
@@ -146,5 +148,54 @@ export function makeInstrument(): Instrument {
       { value: 2, label: "More than half the days" },
       { value: 3, label: "Nearly every day" },
     ],
+  };
+}
+
+interface WellbeingOptions {
+  status?: WellbeingStatus;
+  daysWithData?: number;
+  lowValenceDays?: number;
+  conflictDays?: number;
+  sustainedLowValence?: boolean;
+  sustainedConflict?: boolean;
+  prompts?: Wellbeing["prompts"];
+}
+
+export function makeWellbeing({
+  status = "steady",
+  daysWithData = 5,
+  lowValenceDays = 0,
+  conflictDays = 0,
+  sustainedLowValence = false,
+  sustainedConflict = false,
+  prompts = [
+    {
+      key: "steady",
+      observation: "Nothing in this week's readings stood out from your usual range.",
+      suggestion: "That is a statement about the readings, not about you.",
+    },
+  ],
+}: WellbeingOptions = {}): Wellbeing {
+  return {
+    status,
+    days_with_data: daysWithData,
+    low_valence_days: lowValenceDays,
+    conflict_days: conflictDays,
+    sustained_low_valence: sustainedLowValence,
+    sustained_conflict: sustainedConflict,
+    window_days: 7,
+    sustained_days_required: 3,
+    minimum_days: 3,
+    days: Array.from({ length: 7 }, (_, index) => ({
+      date: `2026-09-0${index + 1}`,
+      n_readings: 40,
+      low_valence_share: 0.1,
+      conflict_share: 0.1,
+      sufficient: true,
+    })),
+    prompts,
+    low_valence_threshold: -0.2,
+    low_valence_share_threshold: 0.4,
+    conflict_share_threshold: 0.4,
   };
 }

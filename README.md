@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml/badge.svg)](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml)
 
-## v0.6: PHQ-8 check-ins and the correlation view
+## v0.7: accounts and the weekly wellbeing view
 
 This B.Tech project MVP provides a live, conversation-style analysis session. It transcribes short spoken-English segments locally and returns indicators for spoken words, vocal expression, and visible facial expression.
 
@@ -26,6 +26,8 @@ Implemented:
 - A trends view: mood valence, cross-channel conflict and channel coverage over time
 - Optional weekly PHQ-8 self-report check-ins, scored on the server
 - A within-subject correlation between the behavioural index and PHQ-8
+- Password accounts behind a signed HttpOnly session cookie
+- A weekly wellbeing view reporting observations, never a state
 - Cross-channel divergence scoring, used both to flag conflict and to attenuate fused confidence
 
 Planned for later milestones:
@@ -242,6 +244,8 @@ through a separate router, so the evaluation harness can drive `/predict/*`
 | `GET /checkins` | List check-ins |
 | `GET /trends` | Daily buckets, check-in scores and the correlation |
 | `GET /instruments/{code}` | The instrument definition the form renders from |
+| `GET /wellbeing` | Observations over the trailing week |
+| `POST /auth/register` · `/login` · `/logout` · `GET /auth/me` | Accounts |
 
 Readings are posted in batches: a live session emits a facial reading every two
 seconds and an audio segment every five, so one request per reading would triple
@@ -305,6 +309,46 @@ Note the expected sign: PHQ-8 runs 0–24 where higher is worse and valence runs
 
 The two series are plotted as **two stacked charts on a shared date axis**, not one chart with two y-axes. Overlaying them would let arbitrary scaling imply a relationship, and inverting an axis so both read "up is better" would hide the polarity flip from anyone skimming.
 
+### Accounts
+
+Every personal endpoint requires a signed-in account. The session cookie is **signed and HttpOnly**, so script cannot read it and an XSS bug cannot exfiltrate a session — which matters here because the account holds PHQ-8 responses. Passwords are hashed with Argon2.
+
+`SECRET_KEY` has no default and the app refuses to start without one. A development fallback secret is exactly the kind of thing that reaches production.
+
+Login and registration failures return the same message, so neither reveals whether an address is registered. **Failed logins are throttled per address in-process only** — the counter survives neither a restart nor a second worker. That is enough to blunt casual guessing in a demo and is not production-grade rate limiting.
+
+The seeded development account has a null password hash, which never verifies, so it becomes unreachable once registration exists. Its sessions and check-ins remain in the database owned by nobody who can sign in. That is deliberate: it is development data, and anything worth demonstrating is re-recorded after auth.
+
+### `GET /wellbeing`
+
+Two observations over the trailing week: the share of a day's combined readings falling below a valence threshold, and the share flagged as a cross-channel conflict.
+
+**Neither is a state, and a single bad day is never a signal.** Something is only called sustained when the day qualifies on at least `distress_sustained_days` days of the window. Below `distress_minimum_days` days with data, nothing is reported in either direction — reporting "steady" from two days would be a reassurance nobody measured.
+
+The interface says *"more low-valence readings than usual this week"* and never *"you are distressed"* — the same discipline as "the channels disagree" rather than "you are concealing something". The headline never renders alone: the day counts and the thresholds behind it are always beside it, enforced the way `ChartFrame` enforces `computedFrom`.
+
+**Self-care prompts are a static, hand-written, rule-mapped library** in `app/content/self_care.py`. Nothing is generated at runtime and no language model is involved. This is the one place in the project where that must hold: generated advice delivered on a sustained-distress trigger is the single thing this app could do that would actually hurt someone. A test asserts the module imports nothing that could produce text.
+
+**Support information is persistent, not triggered.** Helplines sit on the wellbeing page in every state, including the healthiest and the empty one. If they appeared only above a threshold, their arrival would itself announce a verdict.
+
+### Provisional constants
+
+Every one of these is a hand-picked default awaiting the RAVDESS evaluation (M2). When it lands, calibration is an edit to `backend/app/config.py` rather than a rewrite:
+
+| Setting | Default | Replaced by |
+| --- | --- | --- |
+| `conflict_threshold` | 0.35 | ROC over labelled cross-modal disagreement |
+| `fusion_weight_text` / `_voice` / `_face` | 1.0 each | Per-modality reliability on held-out data |
+| `distress_low_valence` | −0.2 | The observed valence distribution |
+| `distress_low_valence_share` | 0.4 | The observed share distribution |
+| `distress_conflict_share` | 0.4 | The observed conflict-rate distribution |
+| `distress_sustained_days` | 3 of 7 | Sensitivity against reported check-ins |
+| `distress_minimum_days` | 3 | Stability of the weekly estimate |
+| `MINIMUM_READINGS_PER_DAY` | 20 | Variance of a day's mean by reading count |
+| `MINIMUM_PAIRS` | 4 | Left as a reporting floor, not derived |
+
+No accuracy claim should be published against any of them.
+
 ## Limitations and privacy
 
 This MVP is designed for controlled academic demonstration. It does not provide clinical assessment, therapeutic advice, or generated therapist replies, and should not be used to make medical, employment, safety, or high-impact decisions.
@@ -327,7 +371,7 @@ Facial output is a visible-expression indicator, not a measurement of a person's
 
 Both suites run in CI on every push and pull request.
 
-Backend — 126 tests, from `backend/`:
+Backend — 186 tests, from `backend/`:
 
 ```bash
 pytest
@@ -335,7 +379,7 @@ ruff check .
 ruff format --check .
 ```
 
-Frontend — 107 tests, from `frontend/`:
+Frontend — 133 tests, from `frontend/`:
 
 ```bash
 npm test

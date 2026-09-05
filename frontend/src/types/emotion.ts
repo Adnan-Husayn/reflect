@@ -205,3 +205,37 @@ export interface Account {
   id: string;
   email: string;
 }
+
+/** Mirrors backend/app/schemas/wellbeing.py. */
+export interface WellbeingDay {
+  date: string;
+  n_readings: number;
+  low_valence_share: number | null;
+  conflict_share: number | null;
+  sufficient: boolean;
+}
+
+export interface SelfCarePrompt {
+  key: string;
+  observation: string;
+  suggestion: string;
+}
+
+export type WellbeingStatus = "insufficient_data" | "steady" | "observations";
+
+export interface Wellbeing {
+  status: WellbeingStatus;
+  days_with_data: number;
+  low_valence_days: number;
+  conflict_days: number;
+  sustained_low_valence: boolean;
+  sustained_conflict: boolean;
+  window_days: number;
+  sustained_days_required: number;
+  minimum_days: number;
+  days: WellbeingDay[];
+  prompts: SelfCarePrompt[];
+  low_valence_threshold: number;
+  low_valence_share_threshold: number;
+  conflict_share_threshold: number;
+}
