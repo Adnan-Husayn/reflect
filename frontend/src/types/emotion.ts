@@ -200,3 +200,8 @@ export interface DeletionReceipt {
   deleted_fused_readings: number;
   deleted_checkins: number;
 }
+
+export interface Account {
+  id: string;
+  email: string;
+}

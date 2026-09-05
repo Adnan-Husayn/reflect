@@ -230,3 +230,19 @@ footer { border-top: 1px solid #dbe3ed; color: #64748b; font-size: .8rem; line-h
 .correlation-value span { color: #64748b; font-size: .85rem; font-variant-numeric: tabular-nums; }
 .correlation-caption, .correlation-pending { color: #475569; font-size: .84rem; line-height: 1.6; margin: 0; }
 .correlation-caveat { border-top: 1px solid #e2e8f0; color: #64748b; font-size: .78rem; line-height: 1.6; margin: .85rem 0 0; padding-top: .75rem; }
+
+/* ── Auth ───────────────────────────────────────────────────────── */
+.auth-page { max-width: 26rem; }
+.auth-form { background: #fff; border: 1px solid #dbe3ed; border-radius: .9rem; display: grid; gap: .35rem; padding: 1.4rem; }
+.auth-form label { color: #0f172a; font-size: .82rem; font-weight: 600; margin-top: .6rem; }
+.auth-form label:first-of-type { margin-top: 0; }
+.auth-form input { border: 1px solid #cbd5e1; border-radius: .5rem; color: #1e293b; padding: .55rem .65rem; width: 100%; }
+.auth-form input:focus-visible { outline: 3px solid #93c5fd; outline-offset: 1px; }
+.auth-form button { margin-top: 1.1rem; }
+.field-hint { color: #64748b; font-size: .75rem; }
+.field-hint.warning { color: #b45309; }
+.auth-alt { color: #64748b; font-size: .85rem; margin-top: 1rem; text-align: center; }
+.auth-alt a { color: #2563eb; }
+
+.app-nav-account { align-items: center; display: flex; gap: .75rem; margin-left: auto; }
+.app-nav-email { color: #64748b; font-size: .8rem; }

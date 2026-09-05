@@ -12,6 +12,7 @@ import type {
   TrendsOut,
 } from "../types/emotion";
 import type {
+  Account,
   CheckInIn,
   CheckInOut,
   DeletionReceipt,
@@ -20,11 +21,27 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+/** Thrown on any 401 so the auth layer can redirect rather than parse messages. */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("Your session has ended. Please sign in again.");
+    this.name = "UnauthorizedError";
+  }
+}
+
 async function request<T>(path: string, options: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
+  // credentials: "include" sends the HttpOnly session cookie. The backend
+  // allows exactly frontend_origin — a wildcard is invalid with credentials.
+  const response = await fetch(`${API_BASE_URL}${path}`, { credentials: "include", ...options });
+  if (response.status === 401) {
+    throw new UnauthorizedError();
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body.detail ?? "Unable to complete analysis.");
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return response.json() as Promise<T>;
 }
@@ -117,4 +134,28 @@ export function getCheckins(): Promise<CheckInOut[]> {
 /** Withdrawal. Deletes rows outright; there is no undo. */
 export function deleteMyData(): Promise<DeletionReceipt> {
   return request("/users/me/data", { method: "DELETE" });
+}
+
+export function register(email: string, password: string): Promise<Account> {
+  return request("/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function login(email: string, password: string): Promise<Account> {
+  return request("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function logout(): Promise<void> {
+  return request("/auth/logout", { method: "POST" });
+}
+
+export function getAccount(): Promise<Account> {
+  return request("/auth/me", { method: "GET" });
 }
