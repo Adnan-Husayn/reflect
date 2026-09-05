@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml/badge.svg)](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml)
 
-## v0.4: session persistence
+## v0.4: fused live session, recorded
 
 This B.Tech project MVP provides a live, conversation-style analysis session. It transcribes short spoken-English segments locally and returns indicators for spoken words, vocal expression, and visible facial expression.
 
@@ -21,7 +21,8 @@ Implemented:
 - Collapsed typed-text fallback for accessibility and testing
 - A shared response schema and canonical emotion labels
 - Weighted late fusion with the per-channel components always visible
-- Session persistence for derived score vectors, with per-session and full-withdrawal deletion
+- A fused headline in the live session, shown above the three channels and never instead of them
+- Session recording for derived score vectors, with per-session and full-withdrawal deletion
 - Optional PHQ-8 / GAD-7 self-report check-ins
 - Cross-channel divergence scoring, used both to flag conflict and to attenuate fused confidence
 
@@ -272,6 +273,10 @@ This MVP is designed for controlled academic demonstration. It does not provide 
 
 **What is stored, once a session is opened.** Derived score vectors, labels, confidences, the fused reading and its divergence, plus timestamps and a session rollup. Because transcripts are not kept, session replay shows emotion trajectories but never the words spoken. That is the intended trade.
 
+The live session now records automatically. Readings are buffered in the browser and flushed every 15 seconds and again at session end, so a crashed tab loses at most fifteen seconds rather than the whole session. The facial reading written is the smoothed five-frame value the interface actually displayed, not the raw per-frame score — trends therefore inherit that smoothing, and per-frame variance is not recoverable.
+
+**Recording never blocks the session.** If the database is unreachable the live indicators keep working, a quiet "Not recording" badge appears beside the session status, and nothing is written. A failed flush drops its batch rather than retrying: an ever-growing retry queue in a long session is a worse failure than a gap.
+
 **Withdrawal.** `DELETE /sessions/{id}` erases one session and everything derived from it; `DELETE /users/me/data` erases every session, reading and check-in for the user. Both delete rows outright rather than marking them inactive, and both return a receipt of what was removed.
 
 No analytics or telemetry are collected.
@@ -290,7 +295,7 @@ ruff check .
 ruff format --check .
 ```
 
-Frontend — 26 tests, from `frontend/`:
+Frontend — 53 tests, from `frontend/`:
 
 ```bash
 npm test
