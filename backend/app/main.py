@@ -10,6 +10,7 @@ from app.models.facial_emotion import FacialEmotionModel
 from app.models.speech_transcription import SpeechTranscriptionModel
 from app.models.text_emotion import TextEmotionModel
 from app.routers.analysis import router as analysis_router
+from app.routers.auth import router as auth_router
 from app.routers.instruments import router as instruments_router
 from app.routers.predictions import router as prediction_router
 from app.routers.sessions import router as sessions_router
@@ -54,8 +55,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    # Required for the session cookie to travel. A wildcard origin is
+    # invalid with credentials, so frontend_origin must stay exact.
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
 )
 app.include_router(prediction_router)
@@ -63,6 +66,7 @@ app.include_router(analysis_router)
 app.include_router(sessions_router)
 app.include_router(trends_router)
 app.include_router(instruments_router)
+app.include_router(auth_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])

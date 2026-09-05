@@ -12,11 +12,12 @@ this API cannot store raw media regardless of what a caller sends.
 import logging
 from collections import Counter
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, status
 from sqlalchemy.orm import Session as OrmSession
 
 from app.db.models import CheckIn, FusedReading, Reading, Session, SessionSummary, User, utcnow
-from app.db.session import ensure_seed_user, get_db
+from app.db.session import get_db
+from app.routers.auth import resolve_user
 from app.schemas.session import (
     BatchAccepted,
     CheckInIn,
@@ -28,15 +29,26 @@ from app.schemas.session import (
     SessionOut,
     SummaryOut,
 )
+from app.security import SESSION_COOKIE
 from app.utils.valence import mean_valence
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["sessions"])
 
 
-def current_user(db: OrmSession = Depends(get_db)) -> User:
-    """Auth is deferred to a later milestone; resolve the single local user."""
-    return ensure_seed_user(db)
+def current_user(
+    reflect_session: str | None = Cookie(default=None, alias=SESSION_COOKIE),
+    db: OrmSession = Depends(get_db),
+) -> User:
+    """Resolve the signed-in account, or refuse.
+
+    Every session-scoped query already filtered on user_id, so this dependency
+    is the whole of what auth changed on the read and write paths.
+    """
+    user = resolve_user(reflect_session, db)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not signed in.")
+    return user
 
 
 def _owned_session(session_id: str, db: OrmSession, user: User) -> Session:

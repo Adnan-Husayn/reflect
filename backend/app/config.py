@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     # services. Compose and CI override this with Postgres.
     database_url: str = "sqlite:///./reflect.db"
 
+    # No default. The app refuses to start without one: a development
+    # fallback secret is exactly the kind of thing that reaches production.
+    secret_key: str
+    # False for local HTTP development; must be true anywhere real.
+    cookie_secure: bool = False
+    session_max_age_days: int = 14
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
