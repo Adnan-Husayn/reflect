@@ -18,6 +18,24 @@ jobs:
       run:
         working-directory: backend
 
+    services:
+      # The unit suite runs on SQLite and needs no service. Postgres is here to
+      # prove the migrations are valid on the database actually deployed —
+      # a migration can pass on SQLite and still fail on Postgres.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: reflect
+          POSTGRES_PASSWORD: reflect
+          POSTGRES_DB: reflect
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reflect -d reflect"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +61,14 @@ jobs:
 
       - name: Tests
         run: pytest
+
+      - name: Migrations apply and roll back on Postgres
+        env:
+          DATABASE_URL: postgresql+psycopg://reflect:reflect@localhost:5432/reflect
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
 
   evaluation:
     name: Evaluation — lint and tests
