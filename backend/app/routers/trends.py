@@ -14,10 +14,11 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session as OrmSession
 
-from app.db.models import Session, SessionSummary, User
+from app.db.models import CheckIn, Session, SessionSummary, User
 from app.db.session import get_db
 from app.routers.sessions import current_user
-from app.schemas.trends import TrendBucket, TrendsOut
+from app.schemas.trends import CorrelationOut, TrendBucket, TrendsOut
+from app.utils.correlation import correlate
 from app.utils.trends import (
     MINIMUM_READINGS_PER_DAY,
     ROLLING_WINDOW_DAYS,
@@ -65,6 +66,17 @@ def get_trends(
     ]
 
     buckets = build_trends(rollups, start, end)
+
+    checkins = (
+        db.query(CheckIn.taken_on, CheckIn.score)
+        .filter(CheckIn.user_id == user.id, CheckIn.instrument == "PHQ-8")
+        .all()
+    )
+    scores_by_day = dict(checkins)
+
+    # Only days the buckets actually withheld are excluded from pairing: a
+    # check-in on a day with no usable session contributes no pair.
+    correlation = correlate({bucket.day: bucket.mean_valence for bucket in buckets}, scores_by_day)
     return TrendsOut(
         start=start,
         end=end,
@@ -78,9 +90,11 @@ def get_trends(
                 conflict_rate=bucket.conflict_rate,
                 channel_counts=bucket.channel_counts,
                 sufficient=bucket.sufficient,
+                checkin_score=scores_by_day.get(bucket.day),
             )
             for bucket in buckets
         ],
         minimum_readings_per_day=MINIMUM_READINGS_PER_DAY,
         rolling_window_days=ROLLING_WINDOW_DAYS,
+        correlation=CorrelationOut(r=correlation.r, n=correlation.n, minimum_pairs=correlation.minimum_pairs),
     )

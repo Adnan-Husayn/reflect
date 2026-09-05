@@ -266,3 +266,64 @@ def test_a_session_recorded_now_lands_in_the_final_bucket(api: TestClient, db_se
 
     buckets = api.get("/trends?days=2").json()["buckets"]
     assert buckets[-1]["n_sessions"] == 1
+
+
+# ── correlation ───────────────────────────────────────────────────────
+
+
+def phq8_payload(taken_on: str, total: int) -> dict:
+    """A complete PHQ-8 summing to `total`, spread across the eight items."""
+    responses = {f"q{index}": 0 for index in range(1, 9)}
+    remaining = total
+    for index in range(1, 9):
+        take = min(3, remaining)
+        responses[f"q{index}"] = take
+        remaining -= take
+    return {
+        "taken_on": taken_on,
+        "instrument": "PHQ-8",
+        "responses": responses,
+        "score": sum(responses.values()),
+    }
+
+
+def test_correlation_is_withheld_below_the_minimum_pair_count(api: TestClient, db_session):
+    now = datetime.now(UTC)
+    with db_session() as db:
+        seed_session(db, started=now, n_fused=50, valence=0.5, conflict=0.1)
+    api.post("/checkins", json=phq8_payload(now.date().isoformat(), 6))
+
+    correlation = api.get("/trends?days=30").json()["correlation"]
+    assert correlation["r"] is None
+    assert correlation["n"] == 1
+    assert correlation["minimum_pairs"] >= 2
+
+
+def test_a_checkin_with_no_session_that_day_contributes_no_pair(api: TestClient):
+    """A check-in alone is not an observation of the behavioural index."""
+    today = datetime.now(UTC).date()
+    api.post("/checkins", json=phq8_payload(today.isoformat(), 6))
+
+    assert api.get("/trends?days=30").json()["correlation"]["n"] == 0
+
+
+def test_a_checkin_on_a_gap_day_contributes_no_pair(api: TestClient, db_session):
+    """A day the buckets withheld has no valence to pair against."""
+    now = datetime.now(UTC)
+    with db_session() as db:
+        seed_session(db, started=now, n_fused=2, valence=-0.9, conflict=0.9)
+    api.post("/checkins", json=phq8_payload(now.date().isoformat(), 20))
+
+    assert api.get("/trends?days=30").json()["correlation"]["n"] == 0
+
+
+def test_the_checkin_score_is_attached_to_its_own_day(api: TestClient, db_session):
+    now = datetime.now(UTC)
+    with db_session() as db:
+        seed_session(db, started=now, n_fused=50, valence=0.5, conflict=0.1)
+    api.post("/checkins", json=phq8_payload(now.date().isoformat(), 9))
+
+    buckets = api.get("/trends?days=3").json()["buckets"]
+    assert buckets[-1]["checkin_score"] == 9
+    # Check-ins are weekly, so most days carry none.
+    assert buckets[0]["checkin_score"] is None
