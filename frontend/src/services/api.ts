@@ -5,8 +5,11 @@ import type {
   FusionAnalysis,
   LiveAudioAnalysis,
   ReadingBatch,
+  SessionDetail,
+  SessionListItem,
   SessionOut,
   SessionSummary,
+  TrendsOut,
 } from "../types/emotion";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -75,4 +78,16 @@ export function postReadings(sessionId: string, batch: ReadingBatch): Promise<un
 
 export function endSession(sessionId: string): Promise<SessionSummary> {
   return request(`/sessions/${sessionId}/end`, { method: "POST" });
+}
+
+export function getTrends(days = 30): Promise<TrendsOut> {
+  return request(`/trends?days=${days}`, { method: "GET" });
+}
+
+export function getSessions(): Promise<SessionListItem[]> {
+  return request("/sessions", { method: "GET" });
+}
+
+export function getSession(sessionId: string): Promise<SessionDetail> {
+  return request(`/sessions/${sessionId}`, { method: "GET" });
 }
