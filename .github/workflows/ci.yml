@@ -62,11 +62,15 @@ jobs:
         run: ruff format --check .
 
       - name: Tests
+        # The app has no default secret by design, so CI supplies a throwaway.
+        env:
+          SECRET_KEY: ci-secret-not-used-outside-this-runner
         run: pytest
 
       - name: Migrations apply and roll back on Postgres
         env:
           DATABASE_URL: postgresql+psycopg://reflect:reflect@localhost:5432/reflect
+          SECRET_KEY: ci-secret-not-used-outside-this-runner
         run: |
           alembic upgrade head
           alembic downgrade base

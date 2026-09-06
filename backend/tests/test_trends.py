@@ -3,8 +3,7 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db.models import FusedReading, Reading, Session, SessionSummary
-from app.db.session import ensure_seed_user
+from app.db.models import FusedReading, Reading, Session, SessionSummary, User
 from app.schemas.emotion import CANONICAL_EMOTIONS
 from app.utils.trends import (
     MINIMUM_READINGS_PER_DAY,
@@ -151,7 +150,9 @@ def seed_session(
     ended: bool = True,
     channel_counts: dict | None = None,
 ):
-    user = ensure_seed_user(db)
+    # The signed-in account, not the seeded development one: sessions now
+    # belong to whoever is authenticated, and nobody else can see them.
+    user = db.query(User).filter(User.email == "tester@example.com").one()
     session = Session(user_id=user.id, started_at=started, ended_at=started if ended else None)
     db.add(session)
     db.flush()

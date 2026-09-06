@@ -19,6 +19,10 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://reflect:reflect@db:5432/reflect
+      # Local development only. Generate a real one for anything else:
+      #   python -c "import secrets; print(secrets.token_urlsafe(48))"
+      SECRET_KEY: ${SECRET_KEY:-local-development-secret-change-me}
+      COOKIE_SECURE: "false"
     depends_on:
       db:
         condition: service_healthy
