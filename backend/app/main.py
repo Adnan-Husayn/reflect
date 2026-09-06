@@ -15,6 +15,7 @@ from app.routers.instruments import router as instruments_router
 from app.routers.predictions import router as prediction_router
 from app.routers.sessions import router as sessions_router
 from app.routers.trends import router as trends_router
+from app.routers.wellbeing import router as wellbeing_router
 from app.schemas.emotion import HealthResponse
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -67,6 +68,7 @@ app.include_router(sessions_router)
 app.include_router(trends_router)
 app.include_router(instruments_router)
 app.include_router(auth_router)
+app.include_router(wellbeing_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])

@@ -246,3 +246,25 @@ footer { border-top: 1px solid #dbe3ed; color: #64748b; font-size: .8rem; line-h
 
 .app-nav-account { align-items: center; display: flex; gap: .75rem; margin-left: auto; }
 .app-nav-email { color: #64748b; font-size: .8rem; }
+
+/* ── Wellbeing ──────────────────────────────────────────────────── */
+.distress { background: #fff; border: 1px solid #dbe3ed; border-radius: .9rem; margin-bottom: 1.1rem; padding: 1.4rem; }
+.distress-observations { border-left: 3px solid #cbd5e1; }
+.distress h2 { color: #0f172a; font-size: 1.15rem; letter-spacing: -.01em; margin-bottom: .6rem; }
+.distress-lead { color: #475569; font-size: .92rem; line-height: 1.6; margin: 0; }
+.distress-observations { list-style: none; margin: 0; padding: .1rem 0 .1rem 1rem; display: grid; gap: .5rem; }
+.distress-observations li { color: #334155; font-size: .92rem; line-height: 1.6; }
+.distress-observations strong { color: #0f172a; font-variant-numeric: tabular-nums; }
+.distress-components { display: grid; gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; border-radius: .6rem; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin: 1.2rem 0 0; overflow: hidden; }
+.distress-components > div { background: #f8fafc; padding: .75rem .85rem; }
+.distress-components dt { color: #64748b; font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.distress-components dd { color: #0f172a; font-size: 1.15rem; font-variant-numeric: tabular-nums; margin: .3rem 0 0; }
+.distress-computed-from { color: #64748b; font-size: .78rem; line-height: 1.6; margin: 1rem 0 0; max-width: 78ch; }
+.distress-caveat { border-top: 1px solid #e2e8f0; color: #475569; font-size: .82rem; line-height: 1.6; margin: .9rem 0 0; padding-top: .8rem; }
+
+.self-care { background: #fff; border: 1px solid #dbe3ed; border-radius: .9rem; margin-bottom: 1.1rem; padding: 1.4rem; }
+.self-care h3 { color: #0f172a; font-size: .95rem; margin-bottom: .8rem; }
+.self-care ul { display: grid; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+.self-care-observation { color: #0f172a; font-size: .9rem; font-weight: 600; line-height: 1.55; margin: 0 0 .25rem; }
+.self-care-suggestion { color: #475569; font-size: .88rem; line-height: 1.6; margin: 0; }
+.self-care-note { border-top: 1px solid #e2e8f0; color: #64748b; font-size: .78rem; line-height: 1.6; margin: 1rem 0 0; padding-top: .8rem; }
