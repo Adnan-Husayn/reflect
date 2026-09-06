@@ -19,6 +19,22 @@ class TrendBucket(BaseModel):
     conflict_rate: float | None
     channel_counts: dict[str, int]
     sufficient: bool
+    # Null on any day without a check-in. Check-ins are weekly, so most
+    # days are null by design rather than by omission.
+    checkin_score: int | None
+
+
+class CorrelationOut(BaseModel):
+    """Within-subject correlation between daily valence and PHQ-8.
+
+    `r` is null below `minimum_pairs`, the same gap-not-zero rule the buckets
+    use. PHQ-8 rises as wellbeing falls while valence does the opposite, so a
+    negative r is the direction that would support the hypothesis.
+    """
+
+    r: float | None
+    n: int
+    minimum_pairs: int
 
 
 class TrendsOut(BaseModel):
@@ -29,3 +45,4 @@ class TrendsOut(BaseModel):
     # instead of hardcoding numbers that would drift from the server.
     minimum_readings_per_day: int
     rolling_window_days: int
+    correlation: CorrelationOut

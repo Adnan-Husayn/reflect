@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml/badge.svg)](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml)
 
-## v0.5: trends over recorded sessions
+## v0.6: PHQ-8 check-ins and the correlation view
 
 This B.Tech project MVP provides a live, conversation-style analysis session. It transcribes short spoken-English segments locally and returns indicators for spoken words, vocal expression, and visible facial expression.
 
@@ -24,7 +24,8 @@ Implemented:
 - A fused headline in the live session, shown above the three channels and never instead of them
 - Session recording for derived score vectors, with per-session and full-withdrawal deletion
 - A trends view: mood valence, cross-channel conflict and channel coverage over time
-- Optional PHQ-8 / GAD-7 self-report check-ins
+- Optional weekly PHQ-8 self-report check-ins, scored on the server
+- A within-subject correlation between the behavioural index and PHQ-8
 - Cross-channel divergence scoring, used both to flag conflict and to attenuate fused confidence
 
 Planned for later milestones:
@@ -239,7 +240,8 @@ through a separate router, so the evaluation harness can drive `/predict/*`
 | `DELETE /users/me/data` | Erase every session, reading and check-in |
 | `POST /checkins` | Record one PHQ-8 / GAD-7 self-report |
 | `GET /checkins` | List check-ins |
-| `GET /trends` | Daily buckets over the recorded sessions |
+| `GET /trends` | Daily buckets, check-in scores and the correlation |
+| `GET /instruments/{code}` | The instrument definition the form renders from |
 
 Readings are posted in batches: a live session emits a facial reading every two
 seconds and an audio segment every five, so one request per reading would triple
@@ -283,6 +285,26 @@ The response carries `minimum_readings_per_day` and `rolling_window_days` so the
 
 **Every chart says what it is computed from, on screen**, next to the chart rather than only in the report. Mood valence is a weighted mean over fused readings using the valence map where joy is +1; anger, disgust, fear and sadness are −1; and neutral and surprise are 0. A reader who cannot see that has been handed a number they cannot evaluate.
 
+### Check-ins and the correlation
+
+`POST /checkins` records one PHQ-8 submission. **The server recomputes the score from the item responses and rejects any submission whose claimed score disagrees.** Before this, a PHQ-8 with two answers and a score of 9999 was a valid request. A partial submission is rejected rather than scored over the items present: a total computed over missing items is not comparable with a complete one, and treating an absent answer as zero would bias every score downward.
+
+`GET /instruments/PHQ-8` serves the eight items and four response options, so the form renders from the server's definition and the two cannot drift.
+
+**PHQ-8 rather than PHQ-9.** PHQ-8 drops PHQ-9's ninth item, which asks about thoughts of self-harm. That is standard for research use precisely because collecting it creates a duty of response this project is not equipped to meet. Only instruments with a server-side definition are accepted, so GAD-7 is rejected until its definition is written.
+
+**No severity bands, by design.** The score is shown as a number and plotted over time. It is never mapped onto "mild", "moderately severe" or a cutpoint verdict. The research question needs the value, not an interpretation, and a band would add clinical-interpretation risk for no analytical gain. This is a decision, not a limitation.
+
+**Support information is persistent, not triggered.** Helpline details sit on the check-in page at all times and at every score. If they appeared only above a threshold, their appearance would itself tell the participant they had scored badly — the app would be delivering a verdict through layout while claiming not to interpret.
+
+**Consent and withdrawal.** A one-time gate before the first submission states that item-level answers are stored rather than only the total, that taking part is optional, and that withdrawal deletes everything. The withdrawal control calls `DELETE /users/me/data`, asks for confirmation, and shows the receipt of what was removed.
+
+**The correlation states its own weakness.** `GET /trends` returns Pearson `r` between each day's mean valence and that day's PHQ-8 score, with its `n`. Below `minimum_pairs` the coefficient is withheld entirely — the same gap-not-zero rule the daily buckets use — while `n` is reported either way. A pair needs both a usable session and a check-in on the same day; a check-in on a day the buckets withheld as a gap contributes nothing.
+
+Note the expected sign: PHQ-8 runs 0–24 where higher is worse and valence runs −1..+1 where higher is better, so a **negative** r is the direction that would support the hypothesis. With weekly check-ins over a single term, n lands around 8–10 — a real result, and nowhere near significance. The interface says so.
+
+The two series are plotted as **two stacked charts on a shared date axis**, not one chart with two y-axes. Overlaying them would let arbitrary scaling imply a relationship, and inverting an axis so both read "up is better" would hide the polarity flip from anyone skimming.
+
 ## Limitations and privacy
 
 This MVP is designed for controlled academic demonstration. It does not provide clinical assessment, therapeutic advice, or generated therapist replies, and should not be used to make medical, employment, safety, or high-impact decisions.
@@ -305,7 +327,7 @@ Facial output is a visible-expression indicator, not a measurement of a person's
 
 Both suites run in CI on every push and pull request.
 
-Backend — 90 tests, from `backend/`:
+Backend — 126 tests, from `backend/`:
 
 ```bash
 pytest
@@ -313,7 +335,7 @@ ruff check .
 ruff format --check .
 ```
 
-Frontend — 77 tests, from `frontend/`:
+Frontend — 107 tests, from `frontend/`:
 
 ```bash
 npm test

@@ -110,6 +110,8 @@ export interface TrendBucket {
   conflict_rate: number | null;
   channel_counts: Partial<Record<Channel, number>>;
   sufficient: boolean;
+  /** Null on any day without a check-in — most days, since they are weekly. */
+  checkin_score: number | null;
 }
 
 export interface TrendsOut {
@@ -118,6 +120,7 @@ export interface TrendsOut {
   buckets: TrendBucket[];
   minimum_readings_per_day: number;
   rolling_window_days: number;
+  correlation: Correlation;
 }
 
 export interface SessionListItem extends SessionOut {
@@ -147,4 +150,53 @@ export interface SessionDetail extends SessionOut {
   summary: SessionSummary | null;
   readings: ReadingOut[];
   fused_readings: FusedReadingOut[];
+}
+
+/** Mirrors backend/app/schemas/instrument.py. */
+export interface InstrumentItem {
+  id: string;
+  text: string;
+}
+
+export interface InstrumentOption {
+  value: number;
+  label: string;
+}
+
+export interface Instrument {
+  code: string;
+  name: string;
+  prompt: string;
+  max_score: number;
+  items: InstrumentItem[];
+  options: InstrumentOption[];
+}
+
+export interface CheckInIn {
+  taken_on: string;
+  instrument: string;
+  responses: Record<string, number>;
+  score: number;
+}
+
+export interface CheckInOut {
+  id: string;
+  taken_on: string;
+  instrument: string;
+  responses: Record<string, number>;
+  score: number;
+}
+
+/** Null below `minimum_pairs`; `n` is reported either way. */
+export interface Correlation {
+  r: number | null;
+  n: number;
+  minimum_pairs: number;
+}
+
+export interface DeletionReceipt {
+  deleted_sessions: number;
+  deleted_readings: number;
+  deleted_fused_readings: number;
+  deleted_checkins: number;
 }

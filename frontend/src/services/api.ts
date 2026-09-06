@@ -11,6 +11,12 @@ import type {
   SessionSummary,
   TrendsOut,
 } from "../types/emotion";
+import type {
+  CheckInIn,
+  CheckInOut,
+  DeletionReceipt,
+  Instrument,
+} from "../types/emotion";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -90,4 +96,25 @@ export function getSessions(): Promise<SessionListItem[]> {
 
 export function getSession(sessionId: string): Promise<SessionDetail> {
   return request(`/sessions/${sessionId}`, { method: "GET" });
+}
+
+export function getInstrument(code = "PHQ-8"): Promise<Instrument> {
+  return request(`/instruments/${code}`, { method: "GET" });
+}
+
+export function postCheckin(checkin: CheckInIn): Promise<CheckInOut> {
+  return request("/checkins", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(checkin),
+  });
+}
+
+export function getCheckins(): Promise<CheckInOut[]> {
+  return request("/checkins", { method: "GET" });
+}
+
+/** Withdrawal. Deletes rows outright; there is no undo. */
+export function deleteMyData(): Promise<DeletionReceipt> {
+  return request("/users/me/data", { method: "DELETE" });
 }

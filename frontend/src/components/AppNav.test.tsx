@@ -12,10 +12,17 @@ function renderAt(path: string) {
 }
 
 describe("AppNav", () => {
-  it("links to both pages", () => {
+  it("links to every page", () => {
     renderAt("/");
     expect(screen.getByRole("link", { name: "Live session" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Check-in" })).toHaveAttribute("href", "/check-in");
     expect(screen.getByRole("link", { name: "Trends" })).toHaveAttribute("href", "/trends");
+  });
+
+  it("marks the check-in active on its own route", () => {
+    renderAt("/check-in");
+    expect(screen.getByRole("link", { name: "Check-in" })).toHaveClass("active");
+    expect(screen.getByRole("link", { name: "Live session" })).not.toHaveClass("active");
   });
 
   it("marks the live session active only on the index route", () => {
