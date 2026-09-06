@@ -21,7 +21,7 @@ export function Login({ onSignedIn }: LoginProps) {
     try {
       const account = await login(email.trim(), password);
       onSignedIn(account);
-      navigate("/", { replace: true });
+      navigate("/session", { replace: true });
     } catch (loginError) {
       // The server returns the same message for a wrong password and an
       // unknown address; passing it through keeps that property.

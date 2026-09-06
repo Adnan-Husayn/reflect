@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml/badge.svg)](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml)
 
-## v0.7: accounts and the weekly wellbeing view
+## v0.8: sage-and-beige interface and a public landing page
 
 This B.Tech project MVP provides a live, conversation-style analysis session. It transcribes short spoken-English segments locally and returns indicators for spoken words, vocal expression, and visible facial expression.
 
@@ -28,6 +28,7 @@ Implemented:
 - A within-subject correlation between the behavioural index and PHQ-8
 - Password accounts behind a signed HttpOnly session cookie
 - A weekly wellbeing view reporting observations, never a state
+- A public landing page, so a visitor meets the product rather than a sign-in form
 - Cross-channel divergence scoring, used both to flag conflict and to attenuate fused confidence
 
 Planned for later milestones:
@@ -349,6 +350,22 @@ Every one of these is a hand-picked default awaiting the RAVDESS evaluation (M2)
 
 No accuracy claim should be published against any of them.
 
+### Interface
+
+The palette is one warm ground, one sage action colour, and one clay colour reserved for cross-channel disagreement. Structure comes from three tones of a single 1px hairline rather than from panel fills, shadows or cards — uniform padding, uniform radii and a badge on every card are the most reliable visual tells of a generated interface, and they are also what makes a screen noisy to read when unwell. There is one border radius (3px) and no shadows anywhere.
+
+The three channel colours share a lightness and chroma and differ only in hue, so no channel reads as more severe than another and all three separate in greyscale. Clay appears nowhere except disagreement.
+
+Minimal here means fewer elements, not paler ones: every text colour clears 4.5:1 against the ground, because low-contrast minimalism fails exactly the users this is for.
+
+Chart colours are mirrored as literals in `components/charts/` because Recharts needs concrete values; keep them in step with the tokens at the top of `index.css`.
+
+### Routing
+
+`/` is public. A visitor meets the landing page rather than a sign-in form, and the live session moved to `/session`. The hero animation is the product rather than decoration: three lines, one per channel, each following the cursor with a different pull, so dragging across the field pulls them apart, the divergence figure climbs, and past the threshold the readout turns clay and reads *the channels disagree*. Ambient drift stops under `prefers-reduced-motion`; the cursor response stays, because that is the explanation.
+
+The landing copy is written against the shipped app, not the design canvas. The canvas was drawn at v0.3 and still claims "no combined score" and "no accounts, no history" — both made false by fusion and persistence. Two tests assert those claims never come back.
+
 ## Limitations and privacy
 
 This MVP is designed for controlled academic demonstration. It does not provide clinical assessment, therapeutic advice, or generated therapist replies, and should not be used to make medical, employment, safety, or high-impact decisions.
@@ -379,7 +396,7 @@ ruff check .
 ruff format --check .
 ```
 
-Frontend — 133 tests, from `frontend/`:
+Frontend — 150 tests, from `frontend/`:
 
 ```bash
 npm test
