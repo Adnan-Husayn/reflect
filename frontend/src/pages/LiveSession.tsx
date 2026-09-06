@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FusedIndicator } from "../components/FusedIndicator";
 import { LiveEmotionIndicator } from "../components/LiveEmotionIndicator";
 import { StatusMessage } from "../components/StatusMessage";
@@ -152,11 +152,33 @@ export function LiveSession() {
     await session.startSession();
   };
 
-  const endSession = () => {
+  const endSession = useCallback(() => {
     sessionToken.current += 1;
     session.stopSession();
     void recorder.stop();
-  };
+  }, [recorder, session]);
+
+  // Navigating away, or closing the tab, must close the session too.
+  //
+  // stop() was previously reachable only from the End session button, so
+  // leaving the page mid-session lost the buffered readings and left the row
+  // with ended_at NULL forever. Trends and wellbeing both require a summary,
+  // so that session was silently dropped from everything.
+  const endSessionRef = useRef(endSession);
+  useEffect(() => {
+    endSessionRef.current = endSession;
+  }, [endSession]);
+
+  useEffect(() => {
+    const closeOnUnload = () => endSessionRef.current();
+    window.addEventListener("beforeunload", closeOnUnload);
+    window.addEventListener("pagehide", closeOnUnload);
+    return () => {
+      window.removeEventListener("beforeunload", closeOnUnload);
+      window.removeEventListener("pagehide", closeOnUnload);
+      endSessionRef.current();
+    };
+  }, []);
 
   return (
     <main className="page-shell live-page">

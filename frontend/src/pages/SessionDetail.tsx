@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { SessionReplay } from "../components/charts/SessionReplay";
 import { EmptyState } from "../components/EmptyState";
 import { getSession } from "../services/api";
 import type { SessionDetail as SessionDetailData } from "../types/emotion";
@@ -94,6 +95,8 @@ export function SessionDetail() {
           This session has no rollup, which means it was never ended.
         </EmptyState>
       )}
+
+      <SessionReplay fused={session.fused_readings} />
 
       <p className="detail-note">
         Mean valence is a weighted mean over this session's fused readings, where joy is +1, anger,
