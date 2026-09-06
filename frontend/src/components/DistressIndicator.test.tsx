@@ -115,4 +115,16 @@ describe("DistressIndicator", () => {
     render(<DistressIndicator wellbeing={makeWellbeing()} />);
     expect(screen.getByText(/observations about recordings, not statements about you/)).toBeInTheDocument();
   });
+
+  it("does not let the status modifier collide with a content class", () => {
+    /* `distress-${status}` renders as "distress-observations" for that status,
+       which matched the .distress-observations list rule and gave the whole
+       section the list's left border. */
+    const { container } = render(
+      <DistressIndicator wellbeing={makeWellbeing({ status: "observations" })} />,
+    );
+    const section = container.querySelector("section.distress") as HTMLElement;
+    expect(section.classList.contains("distress-observations")).toBe(false);
+    expect(section.classList.contains("distress-is-observations")).toBe(true);
+  });
 });

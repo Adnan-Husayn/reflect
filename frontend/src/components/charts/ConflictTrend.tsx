@@ -21,11 +21,11 @@ export function ConflictTrend({ trends }: { trends: TrendsOut }) {
     >
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={trends.buckets} margin={{ top: 8, right: 16, bottom: 4, left: -12 }}>
-          <CartesianGrid stroke="#e2e8f0" vertical={false} />
-          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#94a3b8" fontSize={11} tickLine={false} />
-          <YAxis domain={[0, 1]} ticks={[0, 0.5, 1]} tickFormatter={percentTick} stroke="#94a3b8" fontSize={11} tickLine={false} width={44} />
+          <CartesianGrid stroke="#E6E0D1" vertical={false} />
+          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#9FA694" fontSize={11} tickLine={false} />
+          <YAxis domain={[0, 1]} ticks={[0, 0.5, 1]} tickFormatter={percentTick} stroke="#9FA694" fontSize={11} tickLine={false} width={44} />
           <Tooltip content={<TrendTooltip valueKey="conflict_rate" label="Conflict rate" percent />} />
-          <Bar dataKey="conflict_rate" fill="#9a4a2c" radius={[2, 2, 0, 0]} name="Conflict rate" />
+          <Bar dataKey="conflict_rate" fill="#8A4E38" radius={[2, 2, 0, 0]} name="Conflict rate" />
         </BarChart>
       </ResponsiveContainer>
     </ChartFrame>

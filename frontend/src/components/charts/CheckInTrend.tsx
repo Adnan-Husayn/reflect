@@ -30,9 +30,9 @@ export function CheckInTrend({ trends }: { trends: TrendsOut }) {
     >
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={trends.buckets} margin={{ top: 8, right: 16, bottom: 4, left: -12 }}>
-          <CartesianGrid stroke="#e2e8f0" vertical={false} />
-          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#94a3b8" fontSize={11} tickLine={false} />
-          <YAxis domain={[0, PHQ8_MAX]} ticks={[0, 8, 16, 24]} stroke="#94a3b8" fontSize={11} tickLine={false} width={44} />
+          <CartesianGrid stroke="#E6E0D1" vertical={false} />
+          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#9FA694" fontSize={11} tickLine={false} />
+          <YAxis domain={[0, PHQ8_MAX]} ticks={[0, 8, 16, 24]} stroke="#9FA694" fontSize={11} tickLine={false} width={44} />
           <Tooltip
             labelFormatter={axisDate}
             formatter={(value: number) => [`${value} of ${PHQ8_MAX}`, "PHQ-8"]}
@@ -42,7 +42,7 @@ export function CheckInTrend({ trends }: { trends: TrendsOut }) {
           <Line
             type="monotone"
             dataKey="checkin_score"
-            stroke="#7c3aed"
+            stroke="#545C4F"
             strokeWidth={2}
             dot={{ r: 3 }}
             connectNulls

@@ -33,8 +33,12 @@ export function DistressIndicator({ wellbeing }: { wellbeing: Wellbeing }) {
         ? "Nothing stood out this week"
         : "Some readings stood out this week";
 
+  // The status modifier is prefixed with `is-`: a bare `distress-${status}`
+  // renders as `distress-observations` for that status, which collides with
+  // the `.distress-observations` list class and gave the whole section the
+  // list's left rule.
   return (
-    <section className={`distress distress-${status}`} aria-labelledby="wellbeing-heading">
+    <section className={`distress distress-is-${status}`} aria-labelledby="wellbeing-heading">
       <h2 id="wellbeing-heading">{headline}</h2>
 
       {status === "insufficient_data" ? (

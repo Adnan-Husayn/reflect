@@ -25,7 +25,7 @@ export function Register({ onSignedIn }: RegisterProps) {
     try {
       const account = await register(email.trim(), password);
       onSignedIn(account);
-      navigate("/", { replace: true });
+      navigate("/session", { replace: true });
     } catch (registerError) {
       setError(
         registerError instanceof Error ? registerError.message : "Could not create the account.",

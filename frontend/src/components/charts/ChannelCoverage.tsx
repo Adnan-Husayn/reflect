@@ -33,9 +33,9 @@ export function ChannelCoverage({ trends }: { trends: TrendsOut }) {
     >
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 8, right: 16, bottom: 4, left: -12 }}>
-          <CartesianGrid stroke="#e2e8f0" vertical={false} />
-          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#94a3b8" fontSize={11} tickLine={false} />
-          <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} width={44} allowDecimals={false} />
+          <CartesianGrid stroke="#E6E0D1" vertical={false} />
+          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#9FA694" fontSize={11} tickLine={false} />
+          <YAxis stroke="#9FA694" fontSize={11} tickLine={false} width={44} allowDecimals={false} />
           <Tooltip />
           <Legend iconType="square" wrapperStyle={{ fontSize: 11 }} />
           {CHANNELS.map((channel) => (

@@ -20,15 +20,15 @@ export function ValenceTrend({ trends }: { trends: TrendsOut }) {
     >
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={trends.buckets} margin={{ top: 8, right: 16, bottom: 4, left: -12 }}>
-          <CartesianGrid stroke="#e2e8f0" vertical={false} />
-          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#94a3b8" fontSize={11} tickLine={false} />
-          <YAxis domain={[-1, 1]} ticks={[-1, -0.5, 0, 0.5, 1]} stroke="#94a3b8" fontSize={11} tickLine={false} width={44} />
-          <ReferenceLine y={0} stroke="#cbd5e1" />
+          <CartesianGrid stroke="#E6E0D1" vertical={false} />
+          <XAxis dataKey="date" tickFormatter={axisDate} stroke="#9FA694" fontSize={11} tickLine={false} />
+          <YAxis domain={[-1, 1]} ticks={[-1, -0.5, 0, 0.5, 1]} stroke="#9FA694" fontSize={11} tickLine={false} width={44} />
+          <ReferenceLine y={0} stroke="#C9BCB1" />
           <Tooltip content={<TrendTooltip valueKey="mean_valence" label="Valence" />} />
           {/* connectNulls stays false on purpose: a gap day must read as a
               gap, not be bridged into a continuous line. */}
-          <Line type="monotone" dataKey="mean_valence" stroke="#475569" strokeWidth={1.5} dot={{ r: 2.5 }} connectNulls={false} name="Daily" />
-          <Line type="monotone" dataKey="rolling_valence" stroke="#2563eb" strokeWidth={2} dot={false} connectNulls={false} name="Rolling" />
+          <Line type="monotone" dataKey="mean_valence" stroke="#545C4F" strokeWidth={1.5} dot={{ r: 2.5 }} connectNulls={false} name="Daily" />
+          <Line type="monotone" dataKey="rolling_valence" stroke="#4E6350" strokeWidth={2} dot={false} connectNulls={false} name="Rolling" />
         </LineChart>
       </ResponsiveContainer>
     </ChartFrame>
