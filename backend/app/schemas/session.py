@@ -97,12 +97,16 @@ class BatchAccepted(BaseModel):
 
 
 class SessionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     started_at: datetime
     ended_at: datetime | None
 
 
 class SummaryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     session_id: str
     n_readings: int
     n_fused_readings: int
@@ -114,6 +118,8 @@ class SummaryOut(BaseModel):
 
 
 class ReadingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     t: datetime
     channel: str
     label: str
@@ -122,6 +128,8 @@ class ReadingOut(BaseModel):
 
 
 class FusedReadingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     t: datetime
     label: str
     confidence: float

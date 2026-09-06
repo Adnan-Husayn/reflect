@@ -198,4 +198,40 @@ describe("useSessionRecorder", () => {
 
     expect(api.postReadings).not.toHaveBeenCalled();
   });
+
+  // ── the audit regression ────────────────────────────────────────────
+
+  it("stopping twice does not close the session twice", async () => {
+    /* stop() now runs from the unmount cleanup as well as the button, so a
+       user who clicks End session and then navigates away calls it twice. */
+    const api = makeApi();
+    const { result } = renderHook(() => useSessionRecorder({ api }));
+    await act(async () => await result.current.start());
+    act(() => result.current.addReading(reading()));
+
+    await act(async () => await result.current.stop());
+    await act(async () => await result.current.stop());
+
+    expect(api.endSession).toHaveBeenCalledOnce();
+    expect(api.postReadings).toHaveBeenCalledOnce();
+  });
+
+  it("flushes what it is holding when the session is stopped abruptly", async () => {
+    /* Leaving the page mid-session used to lose the buffer entirely, because
+       stop() was reachable only from the End session button. */
+    const api = makeApi();
+    const { result } = renderHook(() => useSessionRecorder({ api }));
+    await act(async () => await result.current.start());
+    act(() => {
+      result.current.addReading(reading("face"));
+      result.current.addFusedReading(fusedReading());
+    });
+
+    await act(async () => await result.current.stop());
+
+    const batch = api.postReadings.mock.calls[0][1];
+    expect(batch.readings).toHaveLength(1);
+    expect(batch.fused).toHaveLength(1);
+    expect(api.endSession).toHaveBeenCalledWith("s-1");
+  });
 });

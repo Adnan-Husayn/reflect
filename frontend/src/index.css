@@ -375,3 +375,6 @@ footer { border-top: 1px solid var(--rule-section); color: var(--ink-muted); fon
 @media (max-width: 700px) {
   .field-threshold { margin-left: 0; }
 }
+
+.instrument-picker { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+.checkin-actions-inline { align-items: baseline; display: flex; gap: 1rem; }

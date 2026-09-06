@@ -5,7 +5,7 @@ never grades anything: the interface says "more low-valence readings than
 usual", and never "you are distressed".
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session as OrmSession
@@ -32,10 +32,18 @@ def get_wellbeing(db: OrmSession = Depends(get_db), user: User = Depends(current
 
     # Per-reading rather than the rollup: the construct is a share of readings
     # below a threshold, which a daily mean cannot recover.
+    # Bounded by the window. Without the timestamp filter this loaded every
+    # fused reading the account had ever recorded in order to report on seven
+    # days — around 10,000 rows after a term of daily use, growing without end.
+    window_start = datetime.combine(start, time.min, tzinfo=UTC)
     rows = (
         db.query(FusedReading.t, FusedReading.scores, FusedReading.conflict)
         .join(Session, Session.id == FusedReading.session_id)
-        .filter(Session.user_id == user.id, Session.ended_at.isnot(None))
+        .filter(
+            Session.user_id == user.id,
+            Session.ended_at.isnot(None),
+            FusedReading.t >= window_start,
+        )
         .all()
     )
     readings = to_reading_valences([(t.date(), scores, conflict) for t, scores, conflict in rows])

@@ -58,6 +58,16 @@ class Settings(BaseSettings):
     # direction. Below this the answer is 'not enough data', never 'steady'.
     distress_minimum_days: int = 3
 
+    # A session left open longer than this is treated as abandoned and
+    # closed with whatever it collected. Without this, a tab closed
+    # mid-session leaves a row that never gets a summary and is silently
+    # dropped from every trend.
+    abandoned_session_hours: int = 6
+    # Page sizes. A ten-minute session holds roughly 540 readings, so an
+    # unpaginated detail response is not a small thing.
+    sessions_page_size: int = 50
+    readings_page_size: int = 500
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
