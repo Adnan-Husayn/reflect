@@ -39,7 +39,12 @@ def test_no_severity_band_appears_in_the_definition():
 def test_only_instruments_with_a_server_side_definition_are_accepted():
     """An instrument the server cannot score would leave the client's number
     unchecked, which is the hole this package closes."""
-    assert set(INSTRUMENTS) == {"PHQ-8"}
+    assert set(INSTRUMENTS) == {"PHQ-8", "GAD-7"}
+
+
+def test_an_undefined_instrument_is_still_rejected():
+    assert "PHQ-9" not in INSTRUMENTS
+    assert "BDI" not in INSTRUMENTS
 
 
 # ── scoring ───────────────────────────────────────────────────────────
@@ -124,4 +129,27 @@ def test_an_out_of_range_item_is_rejected(api: TestClient):
 
 
 def test_an_undefined_instrument_is_rejected(api: TestClient):
+    assert api.post("/checkins", json=checkin(COMPLETE, 8, "PHQ-9")).status_code == 422
+
+
+def test_gad7_is_scored_by_its_own_seven_items(api: TestClient):
+    """Eight PHQ-8 answers are not a valid GAD-7 submission."""
     assert api.post("/checkins", json=checkin(COMPLETE, 8, "GAD-7")).status_code == 422
+
+    seven = {f"q{index}": 1 for index in range(1, 8)}
+    response = api.post("/checkins", json=checkin(seven, 7, "GAD-7"))
+    assert response.status_code == 201
+    assert response.json()["score"] == 7
+
+
+def test_both_instruments_can_be_answered_on_the_same_day(api: TestClient):
+    """The uniqueness constraint is per instrument, not per day."""
+    seven = {f"q{index}": 1 for index in range(1, 8)}
+    assert api.post("/checkins", json=checkin(COMPLETE, 8, "PHQ-8")).status_code == 201
+    assert api.post("/checkins", json=checkin(seven, 7, "GAD-7")).status_code == 201
+
+
+def test_gad7_carries_no_severity_bands(api: TestClient):
+    body = api.get("/instruments/GAD-7").text.lower()
+    for word in SEVERITY_WORDS:
+        assert word not in body

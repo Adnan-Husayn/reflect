@@ -11,10 +11,12 @@ this API cannot store raw media regardless of what a caller sends.
 
 import logging
 from collections import Counter
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session as OrmSession
 
+from app.config import get_settings
 from app.db.models import CheckIn, FusedReading, Reading, Session, SessionSummary, User, utcnow
 from app.db.session import get_db
 from app.routers.auth import resolve_user
@@ -58,8 +60,35 @@ def _owned_session(session_id: str, db: OrmSession, user: User) -> Session:
     return session
 
 
+def close_abandoned_sessions(db: OrmSession, user: User, older_than_hours: int) -> int:
+    """End sessions left open past the cutoff, computing their rollups.
+
+    A tab closed mid-session leaves ended_at NULL forever. The trends and
+    wellbeing queries both require a summary, so that session is silently
+    dropped from everything rather than reported as incomplete. Sweeping on
+    the next open costs nothing and needs no scheduler.
+    """
+    cutoff = datetime.now(UTC) - timedelta(hours=older_than_hours)
+    abandoned = (
+        db.query(Session)
+        .filter(
+            Session.user_id == user.id,
+            Session.ended_at.is_(None),
+            Session.started_at < cutoff,
+        )
+        .all()
+    )
+    for session in abandoned:
+        session.ended_at = datetime.now(UTC)
+        db.add(_build_summary(session, db))
+    if abandoned:
+        db.commit()
+    return len(abandoned)
+
+
 @router.post("/sessions", response_model=SessionOut, status_code=201)
 def open_session(db: OrmSession = Depends(get_db), user: User = Depends(current_user)) -> Session:
+    close_abandoned_sessions(db, user, get_settings().abandoned_session_hours)
     session = Session(user_id=user.id)
     db.add(session)
     db.commit()
@@ -138,15 +167,59 @@ def end_session(
 
 
 @router.get("/sessions", response_model=list[SessionListItem])
-def list_sessions(db: OrmSession = Depends(get_db), user: User = Depends(current_user)) -> list[Session]:
-    return db.query(Session).filter(Session.user_id == user.id).order_by(Session.started_at.desc()).all()
+def list_sessions(
+    limit: int = Query(default=0, ge=0, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: OrmSession = Depends(get_db),
+    user: User = Depends(current_user),
+) -> list[Session]:
+    page = limit or get_settings().sessions_page_size
+    return (
+        db.query(Session)
+        .filter(Session.user_id == user.id)
+        .order_by(Session.started_at.desc())
+        .offset(offset)
+        .limit(page)
+        .all()
+    )
 
 
 @router.get("/sessions/{session_id}", response_model=SessionDetail)
 def get_session(
-    session_id: str, db: OrmSession = Depends(get_db), user: User = Depends(current_user)
-) -> Session:
-    return _owned_session(session_id, db, user)
+    session_id: str,
+    include_readings: bool = Query(
+        default=False,
+        description="Include the per-channel readings. Off by default: a "
+        "ten-minute session holds roughly 420 of them and the replay is drawn "
+        "from the fused series.",
+    ),
+    db: OrmSession = Depends(get_db),
+    user: User = Depends(current_user),
+) -> SessionDetail:
+    session = _owned_session(session_id, db, user)
+    page = get_settings().readings_page_size
+
+    fused = (
+        db.query(FusedReading)
+        .filter(FusedReading.session_id == session.id)
+        .order_by(FusedReading.t)
+        .limit(page)
+        .all()
+    )
+    readings = (
+        db.query(Reading).filter(Reading.session_id == session.id).order_by(Reading.t).limit(page).all()
+        if include_readings
+        else []
+    )
+
+    return SessionDetail(
+        id=session.id,
+        started_at=session.started_at,
+        ended_at=session.ended_at,
+        summary=session.summary,
+        readings=readings,
+        fused_readings=fused,
+    )
 
 
 def _delete_sessions(sessions: list[Session], db: OrmSession) -> DeletionReceipt:
@@ -228,6 +301,22 @@ def record_checkin(
     db.commit()
     db.refresh(checkin)
     return checkin
+
+
+@router.delete("/checkins/{checkin_id}", status_code=204)
+def delete_checkin(
+    checkin_id: str, db: OrmSession = Depends(get_db), user: User = Depends(current_user)
+) -> None:
+    """Remove one check-in.
+
+    Withdrawal was previously all-or-nothing, so correcting a single
+    mis-tapped entry meant erasing every session as well.
+    """
+    checkin = db.query(CheckIn).filter(CheckIn.id == checkin_id, CheckIn.user_id == user.id).one_or_none()
+    if checkin is None:
+        raise HTTPException(status_code=404, detail="Check-in not found.")
+    db.delete(checkin)
+    db.commit()
 
 
 @router.get("/checkins", response_model=list[CheckInOut])

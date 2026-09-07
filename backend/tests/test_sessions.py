@@ -69,16 +69,42 @@ def test_readings_are_appended_in_batches(api: TestClient):
     assert response.json()["fused_added"] == 1
 
 
-def test_session_survives_and_returns_its_readings(api: TestClient):
+def test_the_fused_series_comes_back_but_channel_readings_do_not(api: TestClient):
+    """The replay is drawn from the fused series. A ten-minute session holds
+    roughly 420 per-channel readings, so shipping them by default sent
+    hundreds of rows the interface never drew."""
     session_id = open_session(api)
     api.post(
         f"/sessions/{session_id}/readings",
         json={"readings": [reading(0, "text", "joy", joy=1.0)], "fused": [fused(0, "joy", joy=1.0)]},
     )
     body = api.get(f"/sessions/{session_id}").json()
-    assert len(body["readings"]) == 1
     assert len(body["fused_readings"]) == 1
+    assert body["readings"] == []
+
+
+def test_channel_readings_are_available_on_request(api: TestClient):
+    session_id = open_session(api)
+    api.post(
+        f"/sessions/{session_id}/readings",
+        json={"readings": [reading(0, "text", "joy", joy=1.0)], "fused": [fused(0, "joy", joy=1.0)]},
+    )
+    body = api.get(f"/sessions/{session_id}?include_readings=true").json()
+    assert len(body["readings"]) == 1
     assert body["readings"][0]["channel"] == "text"
+
+
+def test_the_fused_series_comes_back_in_time_order(api: TestClient):
+    session_id = open_session(api)
+    api.post(
+        f"/sessions/{session_id}/readings",
+        json={
+            "readings": [],
+            "fused": [fused(30, "sadness", sadness=1.0), fused(5, "joy", joy=1.0)],
+        },
+    )
+    labels = [entry["label"] for entry in api.get(f"/sessions/{session_id}").json()["fused_readings"]]
+    assert labels == ["joy", "sadness"]
 
 
 def test_sessions_are_listed_newest_first(api: TestClient):
@@ -262,3 +288,41 @@ def test_phq9_is_refused_because_phq8_is_the_chosen_instrument(api: TestClient):
     risk-management burden the project is explicitly not equipped for."""
     payload = {"taken_on": "2026-09-05", "instrument": "PHQ-9", **phq8(q1=1)}
     assert api.post("/checkins", json=payload).status_code == 422
+
+
+def test_a_single_checkin_can_be_removed(api: TestClient):
+    """Withdrawal was all-or-nothing, so fixing one mis-tapped entry meant
+    erasing every recorded session too."""
+    created = api.post(
+        "/checkins", json={"taken_on": "2026-09-06", "instrument": "PHQ-8", **phq8(q1=2)}
+    ).json()
+
+    assert api.delete(f"/checkins/{created['id']}").status_code == 204
+    assert api.get("/checkins").json() == []
+
+
+def test_deleting_a_checkin_leaves_sessions_alone(api: TestClient):
+    session_id = open_session(api)
+    created = api.post(
+        "/checkins", json={"taken_on": "2026-09-06", "instrument": "PHQ-8", **phq8(q1=1)}
+    ).json()
+
+    api.delete(f"/checkins/{created['id']}")
+
+    assert api.get(f"/sessions/{session_id}").status_code == 200
+
+
+def test_one_account_cannot_delete_another_accounts_checkin(api: TestClient):
+    created = api.post(
+        "/checkins", json={"taken_on": "2026-09-06", "instrument": "PHQ-8", **phq8(q1=1)}
+    ).json()
+
+    api.post("/auth/logout")
+    api.cookies.clear()
+    api.post("/auth/register", json={"email": "intruder@example.com", "password": "a-long-password-here"})
+
+    assert api.delete(f"/checkins/{created['id']}").status_code == 404
+
+
+def test_deleting_an_unknown_checkin_is_a_404(api: TestClient):
+    assert api.delete("/checkins/does-not-exist").status_code == 404

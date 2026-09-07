@@ -9,7 +9,7 @@ Reads `session_summaries` rather than scanning `readings`, which is what the
 rollup exists for.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session as OrmSession
@@ -47,10 +47,17 @@ def get_trends(
 
     # Joining on the summary excludes sessions that are still open: an
     # in-progress session has no rollup and must not be drawn as if it did.
+    # Bounded by the requested range rather than loading every session ever
+    # recorded and discarding the ones outside it.
+    range_start = datetime.combine(start, time.min, tzinfo=UTC)
     rows = (
         db.query(Session.started_at, SessionSummary)
         .join(SessionSummary, SessionSummary.session_id == Session.id)
-        .filter(Session.user_id == user.id, Session.ended_at.isnot(None))
+        .filter(
+            Session.user_id == user.id,
+            Session.ended_at.isnot(None),
+            Session.started_at >= range_start,
+        )
         .all()
     )
 
@@ -69,7 +76,11 @@ def get_trends(
 
     checkins = (
         db.query(CheckIn.taken_on, CheckIn.score)
-        .filter(CheckIn.user_id == user.id, CheckIn.instrument == "PHQ-8")
+        .filter(
+            CheckIn.user_id == user.id,
+            CheckIn.instrument == "PHQ-8",
+            CheckIn.taken_on >= start,
+        )
         .all()
     )
     scores_by_day = dict(checkins)

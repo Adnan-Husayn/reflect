@@ -4,10 +4,19 @@ import { EmptyState } from "../components/EmptyState";
 import { StatusMessage } from "../components/StatusMessage";
 import { SupportInfo } from "../components/SupportInfo";
 import { WithdrawData } from "../components/WithdrawData";
-import { deleteMyData, getCheckins, getInstrument, postCheckin } from "../services/api";
+import {
+  deleteCheckin,
+  deleteMyData,
+  exportUrl,
+  getCheckins,
+  getInstrument,
+  postCheckin,
+} from "../services/api";
 import type { CheckInOut, Instrument } from "../types/emotion";
 
 const CONSENT_KEY = "reflect.checkin.consent";
+const INSTRUMENTS = ["PHQ-8", "GAD-7"] as const;
+type InstrumentCode = (typeof INSTRUMENTS)[number];
 /**
  * PHQ-8 asks about the previous two weeks, so daily answers are heavily
  * autocorrelated: more rows, no more information. The form invites a weekly
@@ -29,6 +38,7 @@ const formatDate = (value: string) =>
   new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" });
 
 export function CheckIn() {
+  const [code, setCode] = useState<InstrumentCode>("PHQ-8");
   const [instrument, setInstrument] = useState<Instrument | null>(null);
   const [checkins, setCheckins] = useState<CheckInOut[]>([]);
   const [responses, setResponses] = useState<Record<string, number>>({});
@@ -44,9 +54,12 @@ export function CheckIn() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (which: InstrumentCode) => {
     try {
-      const [nextInstrument, nextCheckins] = await Promise.all([getInstrument(), getCheckins()]);
+      const [nextInstrument, nextCheckins] = await Promise.all([
+        getInstrument(which),
+        getCheckins(),
+      ]);
       setInstrument(nextInstrument);
       setCheckins(nextCheckins);
       setError(null);
@@ -58,8 +71,8 @@ export function CheckIn() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(code);
+  }, [code, load]);
 
   const answeredAll = useMemo(
     () => instrument !== null && instrument.items.every((item) => item.id in responses),
@@ -80,6 +93,16 @@ export function CheckIn() {
     }
   };
 
+  const remove = async (checkinId: string) => {
+    setError(null);
+    try {
+      await deleteCheckin(checkinId);
+      setCheckins((current) => current.filter((entry) => entry.id !== checkinId));
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : "That check-in could not be removed.");
+    }
+  };
+
   const submit = async () => {
     if (!instrument || !answeredAll) return;
     setIsSubmitting(true);
@@ -89,7 +112,7 @@ export function CheckIn() {
       // so the value sent here is a checksum rather than the source of truth.
       const saved = await postCheckin({
         taken_on: today(),
-        instrument: instrument.code,
+        instrument: code,
         responses,
         score: total,
       });
@@ -103,7 +126,8 @@ export function CheckIn() {
     }
   };
 
-  const latest = checkins[0];
+  const forInstrument = checkins.filter((entry) => entry.instrument === code);
+  const latest = forInstrument[0];
   const due = nextDue(latest);
 
   return (
@@ -131,6 +155,23 @@ export function CheckIn() {
             <p className="loading-note">Loading the questionnaire…</p>
           ) : instrument ? (
             <section className="checkin-form" aria-labelledby="instrument-heading">
+              <div className="instrument-picker" role="group" aria-label="Questionnaire">
+                {INSTRUMENTS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={option === code ? "range-button active" : "range-button"}
+                    aria-pressed={option === code}
+                    onClick={() => {
+                      setCode(option);
+                      setResponses({});
+                      setConfirmation(null);
+                    }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
               <h2 id="instrument-heading">{instrument.name}</h2>
               <p className="instrument-prompt">{instrument.prompt}</p>
 
@@ -194,12 +235,20 @@ export function CheckIn() {
             <section className="checkin-history" aria-labelledby="history-heading">
               <h2 id="history-heading">Your check-ins</h2>
               <ul>
-                {checkins.map((checkin) => (
-                  <li key={checkin.id}>
-                    <span>{formatDate(checkin.taken_on)}</span>
-                    <span className="checkin-score">
-                      {checkin.score}
-                      {instrument ? ` / ${instrument.max_score}` : ""}
+                {checkins.map((entry) => (
+                  <li key={entry.id}>
+                    <span>
+                      {formatDate(entry.taken_on)} <span className="mono">{entry.instrument}</span>
+                    </span>
+                    <span className="checkin-actions-inline">
+                      <span className="checkin-score">{entry.score}</span>
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => void remove(entry.id)}
+                      >
+                        Remove
+                      </button>
                     </span>
                   </li>
                 ))}
@@ -207,6 +256,11 @@ export function CheckIn() {
               <p className="checkin-history-note">
                 Scores are shown as numbers only. Reflect does not grade them or map them onto
                 categories.
+              </p>
+              <p className="checkin-history-note">
+                Take your data with you:{" "}
+                <a href={exportUrl("checkins")}>check-ins as CSV</a> ·{" "}
+                <a href={exportUrl("sessions")}>sessions as CSV</a>
               </p>
             </section>
           )}

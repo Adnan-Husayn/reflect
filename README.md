@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml/badge.svg)](https://github.com/Adnan-Husayn/reflect/actions/workflows/ci.yml)
 
-## v0.8: sage-and-beige interface and a public landing page
+## v0.9: audit fixes, session replay, GAD-7 and CSV export
 
 This B.Tech project MVP provides a live, conversation-style analysis session. It transcribes short spoken-English segments locally and returns indicators for spoken words, vocal expression, and visible facial expression.
 
@@ -29,6 +29,7 @@ Implemented:
 - Password accounts behind a signed HttpOnly session cookie
 - A weekly wellbeing view reporting observations, never a state
 - A public landing page, so a visitor meets the product rather than a sign-in form
+- Session replay, GAD-7 alongside PHQ-8, and CSV export of your own derived data
 - Cross-channel divergence scoring, used both to flag conflict and to attenuate fused confidence
 
 Planned for later milestones:
@@ -246,6 +247,8 @@ through a separate router, so the evaluation harness can drive `/predict/*`
 | `GET /trends` | Daily buckets, check-in scores and the correlation |
 | `GET /instruments/{code}` | The instrument definition the form renders from |
 | `GET /wellbeing` | Observations over the trailing week |
+| `DELETE /checkins/{id}` | Remove one check-in |
+| `GET /export/sessions.csv` · `/export/checkins.csv` | Your own derived data |
 | `POST /auth/register` · `/login` · `/logout` · `GET /auth/me` | Accounts |
 
 Readings are posted in batches: a live session emits a facial reading every two
@@ -366,6 +369,20 @@ Chart colours are mirrored as literals in `components/charts/` because Recharts 
 
 The landing copy is written against the shipped app, not the design canvas. The canvas was drawn at v0.3 and still claims "no combined score" and "no accounts, no history" — both made false by fusion and persistence. Two tests assert those claims never come back.
 
+### Known limits
+
+**`/predict/*` is unauthenticated and unrate-limited.** That is deliberate — the evaluation harness drives those endpoints over HTTP — but it means four models sit behind an open route. Acceptable on localhost and for a demo; not acceptable on anything publicly reachable without a rate limit in front of it.
+
+**Login throttling is per-process and in-memory.** It survives neither a restart nor a second worker.
+
+**Sessions are swept, not watched.** A session left open is closed on the account's next `POST /sessions`, up to `abandoned_session_hours` late. There is no scheduler.
+
+**Valence is implemented twice** — `backend/app/utils/valence.py` and `frontend/src/utils/valence.ts`, the second only so the session replay can plot a stored series without a round trip per reading. Both are pinned by tests over the same cases. If either grows, it belongs on the server alone.
+
+**Chart colours are literals** in `components/charts/`, because Recharts needs concrete values rather than CSS custom properties. Keep them in step with the tokens at the top of `index.css`.
+
+**No end-to-end tests.** Every suite is unit-level. Four defects this cycle — a lost session on navigation, an unbounded query, a CSS class collision and five never-rendered charts — were invisible to 336 passing tests and only appeared when the app was actually run. A single Playwright pass covering start-session → navigate away → assert the session closed would be worth more than the next hundred unit tests.
+
 ## Limitations and privacy
 
 This MVP is designed for controlled academic demonstration. It does not provide clinical assessment, therapeutic advice, or generated therapist replies, and should not be used to make medical, employment, safety, or high-impact decisions.
@@ -388,7 +405,7 @@ Facial output is a visible-expression indicator, not a measurement of a person's
 
 Both suites run in CI on every push and pull request.
 
-Backend — 186 tests, from `backend/`:
+Backend — 212 tests, from `backend/`:
 
 ```bash
 pytest
@@ -396,7 +413,7 @@ ruff check .
 ruff format --check .
 ```
 
-Frontend — 150 tests, from `frontend/`:
+Frontend — 166 tests, from `frontend/`:
 
 ```bash
 npm test

@@ -30,9 +30,15 @@ function checkin(score: number, takenOn = "2026-09-06") {
   };
 }
 
+/** The item fieldsets only — the instrument picker is also a role="group". */
+function itemGroups() {
+  return screen
+    .getAllByRole("group")
+    .filter((group) => group.getAttribute("aria-label") !== "Questionnaire");
+}
+
 async function answerAll(user: ReturnType<typeof userEvent.setup>, value = "Not at all") {
-  const groups = screen.getAllByRole("group");
-  for (const group of groups) {
+  for (const group of itemGroups()) {
     await user.click(within(group).getByRole("radio", { name: value }));
   }
 }
@@ -83,8 +89,7 @@ describe("CheckIn", () => {
     const submit = await screen.findByRole("button", { name: "Submit check-in" });
     expect(submit).toBeDisabled();
 
-    const groups = screen.getAllByRole("group");
-    await user.click(within(groups[0]).getByRole("radio", { name: "Not at all" }));
+    await user.click(within(itemGroups()[0]).getByRole("radio", { name: "Not at all" }));
     expect(submit).toBeDisabled();
 
     await answerAll(user);
@@ -162,5 +167,65 @@ describe("CheckIn", () => {
 
     expect(await screen.findByText(/Next one due/)).toBeInTheDocument();
     expect(screen.getByText(/weekly is enough/)).toBeInTheDocument();
+  });
+
+  // ── the audit additions ─────────────────────────────────────────
+
+  it("offers both instruments and reloads the questionnaire on switch", async () => {
+    const user = userEvent.setup();
+    const getInstrument = vi.spyOn(api, "getInstrument").mockResolvedValue(instrument);
+    localStorage.setItem("reflect.checkin.consent", "true");
+    render(<CheckIn />);
+
+    await screen.findByRole("button", { name: "Submit check-in" });
+    expect(getInstrument).toHaveBeenCalledWith("PHQ-8");
+
+    await user.click(screen.getByRole("button", { name: "GAD-7" }));
+    await waitFor(() => expect(getInstrument).toHaveBeenCalledWith("GAD-7"));
+  });
+
+  it("removes a single check-in without touching the rest", async () => {
+    const user = userEvent.setup();
+    const deleteCheckin = vi.spyOn(api, "deleteCheckin").mockResolvedValue(undefined);
+    vi.spyOn(api, "getCheckins").mockResolvedValue([checkin(6), checkin(9, "2026-08-30")]);
+    localStorage.setItem("reflect.checkin.consent", "true");
+    render(<CheckIn />);
+
+    await screen.findByRole("heading", { name: "Your check-ins" });
+    const remove = screen.getAllByRole("button", { name: "Remove" });
+    expect(remove).toHaveLength(2);
+
+    await user.click(remove[0]);
+
+    await waitFor(() => expect(deleteCheckin).toHaveBeenCalledWith("c-2026-09-06"));
+    await waitFor(() =>
+      expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(1),
+    );
+  });
+
+  it("offers the data as CSV rather than only on screen", async () => {
+    vi.spyOn(api, "getCheckins").mockResolvedValue([checkin(6)]);
+    localStorage.setItem("reflect.checkin.consent", "true");
+    render(<CheckIn />);
+
+    expect(await screen.findByRole("link", { name: "check-ins as CSV" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/export/checkins.csv"),
+    );
+    expect(screen.getByRole("link", { name: "sessions as CSV" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/export/sessions.csv"),
+    );
+  });
+
+  it("labels which instrument each past entry was", async () => {
+    vi.spyOn(api, "getCheckins").mockResolvedValue([checkin(6)]);
+    localStorage.setItem("reflect.checkin.consent", "true");
+    const { container } = render(<CheckIn />);
+
+    await screen.findByRole("heading", { name: "Your check-ins" });
+    // "PHQ-8" is also the picker's button label, so scope to the history.
+    const history = container.querySelector(".checkin-history") as HTMLElement;
+    expect(within(history).getByText("PHQ-8")).toBeInTheDocument();
   });
 });

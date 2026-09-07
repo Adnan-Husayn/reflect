@@ -164,3 +164,12 @@ export function getAccount(): Promise<Account> {
 export function getWellbeing(): Promise<Wellbeing> {
   return request("/wellbeing", { method: "GET" });
 }
+
+export function deleteCheckin(checkinId: string): Promise<void> {
+  return request(`/checkins/${checkinId}`, { method: "DELETE" });
+}
+
+/** Absolute, because the browser follows these as downloads rather than fetch. */
+export function exportUrl(what: "sessions" | "checkins"): string {
+  return `${API_BASE_URL}/export/${what}.csv`;
+}

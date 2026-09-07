@@ -5,8 +5,9 @@ an instrument the server cannot itself compute would leave exactly the hole
 this package closes: a client-supplied number nobody can check.
 """
 
+from app.instruments.gad7 import GAD7
 from app.instruments.phq8 import PHQ8
 
-INSTRUMENTS = {PHQ8.code: PHQ8}
+INSTRUMENTS = {PHQ8.code: PHQ8, GAD7.code: GAD7}
 
-__all__ = ["INSTRUMENTS", "PHQ8"]
+__all__ = ["GAD7", "INSTRUMENTS", "PHQ8"]
